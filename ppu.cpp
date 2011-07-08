@@ -82,9 +82,22 @@ byte PPU::read_register(byte num) {
 }
 
 void PPU::write_register(byte num, byte val) {
+    int cycles;
     switch(num) {
     case 0:
         pctrl = val;
+        cycles = mach->cpu->cycle_count * 3;
+        if(pctrl & (1<<7)) {
+            if(((pstat & (1<<7)) || (cycles - vbl_off <= 2)) && !nmi_occurred) {
+                mach->request_nmi();
+                nmi_occurred = true;
+            }
+        } else {
+            nmi_occurred = false;
+            if(cycles - last_nmi < 6) {
+                mach->suppress_nmi();
+            }
+        }
         taddr &= (~(0x3 << 10));
         taddr |= (val & 0x3) << 10;
         break;
@@ -205,10 +218,6 @@ void PPU::new_scanline() {
 
 void PPU::do_vblank(bool rendering_enabled) {
     int cycles = mach->cpu->cycle_count * 3 - cycle_count;
-	if(last_vblank_end < last_vblank_start) {
-		last_vblank_end = mach->cpu->cycle_count;
-		cout << (last_vblank_start - last_vblank_end) << endl;
-	}
     if(341 - cyc > cycles) {
         cyc += cycles;
         cycle_count += cycles;
@@ -326,7 +335,8 @@ void PPU::render_pixels(byte x, byte y, byte num) {
         }
 		debug_flag = false;
         int color = colors[get_mem(coli)];
-        screen.SetPixel(xoff, y, sf::Color((color & 0xff0000)>>16, (color & 0x00ff00) >> 8, color & 0x0000ff));
+        screen.SetPixel(xoff, y, 
+            sf::Color((color & 0xff0000)>>16, (color & 0x00ff00) >> 8, color & 0x0000ff));
         fine_x++;
         fine_x &= 7;
         xoff++;
@@ -350,7 +360,7 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->GetEvent(event)) {
+		while (wind->PollEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();
@@ -392,7 +402,13 @@ void PPU::run() {
 		} else if(sl == -1) {
 			switch(cyc) {
 			case 0:
+	            if(last_vblank_end < last_vblank_start) {
+		            last_vblank_end = mach->cpu->cycle_count;
+		            //cout << (last_vblank_start - last_vblank_end) << endl;
+	            }
 				pstat &= ~(1 << 7);
+				pstat &= ~(1 << 6);
+				pstat &= ~(1 << 5);
 				vbl_off = cycle_count;
 				cycle_count += 340;
 				cyc += 340;
@@ -438,7 +454,8 @@ void PPU::run() {
                 cyc = 0;
                 sl += 1;
                 pstat |= (1 << 7);
-				last_nmi = mach->cpu->cycle_count;
+				last_nmi = cycle_count;
+		        last_vblank_start = mach->cpu->cycle_count;
                 pstat &= ~(1 << 6);
                 if(pctrl & (1 << 7)) {
                     mach->request_nmi();
@@ -447,8 +464,17 @@ void PPU::run() {
 					nmi_occurred = false;
 				}
             }
+        } else if(sl == 241) {
+            if(341 - cyc > cycles) {
+                cycle_count += cycles;
+                cyc += cycles;
+            } else {
+                cycle_count += 341 - cyc;
+                cyc = 0;
+                sl++;
+            }
         } else {
-            cycle_count += 341 * 19;
+            cycle_count += 341 * 18;
             draw_frame();
         }
     }           

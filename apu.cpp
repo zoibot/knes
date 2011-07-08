@@ -188,7 +188,6 @@ void APU::clock_sequencer() {
 			//interrupt
 			if(frame_irq) {
 				frame_interrupt = true;
-				cout << "IRQ" << endl;
 			}
 		case 1:
 			//clock 1
