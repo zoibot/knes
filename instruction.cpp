@@ -85,122 +85,124 @@ ostream& operator <<(ostream &out, Instruction &inst) {
 	return out;
 }
 
-void Instruction::next_instruction() {
+Instruction CPU::next_instruction() {
 	char off;
-	opcode = mach->next_byte();
-	extra_cycles = 0;
-	op = ops[opcode];
-	switch (op.addr_mode) {
+	Instruction next;
+	next.opcode = next_byte();
+	int extra_cycles = 0;
+	next.op = ops[next.opcode];
+	switch (next.op.addr_mode) {
 	case IMM:
-		operand = mach->next_byte();
-		args[0] = operand;
-		arglen = 1;
+		next.operand = next_byte();
+		next.args[0] = next.operand;
+		next.arglen = 1;
 		break;
 	case ZP:
-		addr = mach->next_byte();
-		operand = mach->get_mem(addr);
-		args[0] = addr;
-		arglen = 1;
+		next.addr = next_byte();
+		next.operand = get_mem(next.addr);
+		next.args[0] = next.addr;
+		next.arglen = 1;
 		break;
 	case ZP_ST:
-		addr = mach->next_byte();
-		args[0] = addr;
-		arglen = 1;
+		next.addr = next_byte();
+		next.args[0] = next.addr;
+		next.arglen = 1;
 		break;
 	case ABS:
-		addr = mach->next_word();
-		operand = mach->get_mem(addr);
-		args[0] = addr & 0xff;
-		args[1] = (addr & 0xff00) >> 8;
-		arglen = 2;
+		next.addr = next_word();
+		next.operand = get_mem(next.addr);
+		next.args[0] = next.addr & 0xff;
+		next.args[1] = (next.addr & 0xff00) >> 8;
+		next.arglen = 2;
 		break;
 	case ABS_ST:
-		addr = mach->next_word();
-		args[0] = addr & 0xff;
-		args[1] = (addr & 0xff00) >> 8;
-		arglen = 2;
+		next.addr = next_word();
+		next.args[0] = next.addr & 0xff;
+		next.args[1] = (next.addr & 0xff00) >> 8;
+		next.arglen = 2;
 		break;
 	case ABSI:
-		i_addr = mach->next_word();
-    	addr = mach->get_mem(i_addr) + (mach->get_mem(((i_addr+1) & 0xff) | (i_addr & 0xff00)) << 8);
-		args[0] = i_addr & 0xff;
-		args[1] = (i_addr & 0xff00) >> 8;
-		arglen = 2;
+		next.i_addr = next_word();
+    	next.addr = get_mem(next.i_addr) + (get_mem(((next.i_addr+1) & 0xff) | (next.i_addr & 0xff00)) << 8);
+		next.args[0] = next.i_addr & 0xff;
+		next.args[1] = (next.i_addr & 0xff00) >> 8;
+		next.arglen = 2;
 		break;
 	case ABSY:
-		i_addr = mach->next_word();
-		addr = (i_addr + mach->y) & 0xffff;
-		if(!op.store) {
-			operand = mach->get_mem(addr);
+		next.i_addr = next_word();
+		next.addr = (next.i_addr + y) & 0xffff;
+		if(!next.op.store) {
+			next.operand = get_mem(next.addr);
 		}
-		if((i_addr & 0xff00) != (addr & 0xff00)) {
-			extra_cycles += op.extra_page_cross;
+		if((next.i_addr & 0xff00) != (next.addr & 0xff00)) {
+			extra_cycles += next.op.extra_page_cross;
 		}
-		args[0] = i_addr & 0xff;
-		args[1] = (i_addr & 0xff00) >> 8;
-		arglen = 2;
+		next.args[0] = next.i_addr & 0xff;
+		next.args[1] = (next.i_addr & 0xff00) >> 8;
+		next.arglen = 2;
 		break;
 	case ABSX:
-		i_addr = mach->next_word();
-		addr = (i_addr + mach->x) & 0xffff;
-		if(!op.store) {
-			operand = mach->get_mem(addr);
+		next.i_addr = next_word();
+		next.addr = (next.i_addr + x) & 0xffff;
+		if(!next.op.store) {
+			next.operand = get_mem(next.addr);
 		}
-		if((i_addr & 0xff00) != (addr & 0xff00)) {
-			extra_cycles += op.extra_page_cross;
+		if((next.i_addr & 0xff00) != (next.addr & 0xff00)) {
+			extra_cycles += next.op.extra_page_cross;
 		}
-		args[0] = i_addr & 0xff;
-		args[1] = (i_addr & 0xff00) >> 8;
-		arglen = 2;
+		next.args[0] = next.i_addr & 0xff;
+		next.args[1] = (next.i_addr & 0xff00) >> 8;
+		next.arglen = 2;
 		break;
 	case REL:
-		off = mach->next_byte();
-		addr = off + mach->pc;
-		args[0] = off;
-		arglen = 1;
+		off = next_byte();
+		next.addr = off + pc;
+		next.args[0] = off;
+		next.arglen = 1;
 		break;
 	case IXID:
-		args[0] = mach->next_byte();
-		i_addr = (args[0] + mach->x) & 0xff;
-		addr = (mach->get_mem(i_addr) + (mach->get_mem((i_addr+1) & 0xff) << 8));
-		if(!op.store) {
-			operand = mach->get_mem(addr);
+		next.args[0] = next_byte();
+		next.i_addr = (next.args[0] + x) & 0xff;
+		next.addr = (get_mem(next.i_addr) + (get_mem((next.i_addr+1) & 0xff) << 8));
+		if(!next.op.store) {
+			next.operand = get_mem(next.addr);
 		}
-		arglen = 1;
+		next.arglen = 1;
 		break;
 	case IDIX:
-		i_addr = mach->next_byte();
-		addr = (mach->get_mem(i_addr) + (mach->get_mem((i_addr+1)&0xff)<<8)) + mach->y;
-		addr &= 0xffff;
-		if(!op.store) {
-			operand = mach->get_mem(addr);
+		next.i_addr = next_byte();
+		next.addr = (get_mem(next.i_addr) + (get_mem((next.i_addr+1)&0xff)<<8)) + y;
+		next.addr &= 0xffff;
+		if(!next.op.store) {
+			next.operand = get_mem(next.addr);
 		}
-		if((addr & 0xff00) != ((addr - mach->y) & 0xff00)) {
-			extra_cycles += op.extra_page_cross;
+		if((next.addr & 0xff00) != ((next.addr - y) & 0xff00)) {
+			extra_cycles += next.op.extra_page_cross;
 		}
-		args[0] = i_addr;
-		arglen = 1;
+		next.args[0] = next.i_addr;
+		next.arglen = 1;
 		break;
 	case ZPX:
-		i_addr = mach->next_byte();
-		addr = (i_addr + mach->x) & 0xff;
-		if(!op.store) {
-			operand = mach->get_mem(addr);
+		next.i_addr = next_byte();
+		next.addr = (next.i_addr + x) & 0xff;
+		if(!next.op.store) {
+			next.operand = get_mem(next.addr);
 		}
-		args[0] = i_addr;
-		arglen = 1;
+		next.args[0] = next.i_addr;
+		next.arglen = 1;
 		break;
 	case ZPY:
-		i_addr = mach->next_byte();
-		addr = (i_addr + mach->y) & 0xff;
-		if(!op.store) {
-			operand = mach->get_mem(addr);
+		next.i_addr = next_byte();
+		next.addr = (next.i_addr + y) & 0xff;
+		if(!next.op.store) {
+			next.operand = get_mem(next.addr);
 		}
-		args[0] = i_addr;
-		arglen = 1;
+		next.args[0] = next.i_addr;
+		next.arglen = 1;
 		break;
 	default:
-		arglen = 0;
+		next.arglen = 0;
 		break;
 	}
+	return next;
 }

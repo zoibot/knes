@@ -35,6 +35,7 @@ private:
 	sf::RenderWindow debug;
 	sf::Image debugi;
 	int cycle_count;
+	bool nmi_occurred;
     //memory
     byte* mem;
     byte mem_buf;

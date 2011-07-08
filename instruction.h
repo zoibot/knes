@@ -47,7 +47,6 @@ struct Opcode {
 
 struct Instruction {
 	Instruction();
-    void next_instruction();
     Machine *mach;
 	friend ostream& operator <<(ostream &out, Instruction &inst);
 

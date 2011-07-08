@@ -188,9 +188,9 @@ void PPU::new_scanline() {
 }
 
 void PPU::do_vblank(bool rendering_enabled) {
-    int cycles = mach->cycle_count * 3 - cycle_count;
+    int cycles = mach->cpu->cycle_count * 3 - cycle_count;
 	if(last_vblank_end < last_vblank_start) {
-		last_vblank_end = mach->cycle_count;
+		last_vblank_end = mach->cpu->cycle_count;
 		cout << (last_vblank_start - last_vblank_end) << endl;
 	}
 	pstat &= ~(1 << 7);
@@ -370,8 +370,8 @@ void PPU::run() {
     bool bg_enabled = pmask & (1 << 3);
     bool sprite_enabled = pmask & (1 << 4);
     bool rendering_enabled = bg_enabled || sprite_enabled;
-    int cycles = mach->cycle_count * 3 - cycle_count;
-    while(cycle_count < mach->cycle_count * 3) {
+    int cycles = mach->cpu->cycle_count * 3 - cycle_count;
+    while(cycle_count < mach->cpu->cycle_count * 3) {
         if(sl == -2) {
             do_vblank(rendering_enabled);
 		} else if(sl == -1) {
@@ -408,11 +408,14 @@ void PPU::run() {
                 cyc = 0;
                 sl += 1;
                 pstat |= (1 << 7);
-				last_vblank_start = mach->cycle_count;
+				last_vblank_start = mach->cpu->cycle_count;
                 pstat &= ~(1 << 6);
                 if(pctrl & (1 << 7)) {
-                    mach->nmi(0xfffa);
-                }
+                    mach->request_nmi();
+					nmi_occurred = true;
+                } else {
+					nmi_occurred = false;
+				}
             }
         } else {
             cycle_count += 341 * 20;
