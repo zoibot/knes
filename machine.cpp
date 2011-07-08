@@ -49,6 +49,7 @@ void Machine::set_mem(word addr, byte val) {
     if(addr < 0x2000) {
         mem[addr & 0x7ff] = val;
     } else if(addr < 0x4000) {
+		ppu->run();
         ppu->write_register((addr - 0x2000)&7, val);
     } else if(addr < 0x4018) {
         switch(addr) {
@@ -84,7 +85,7 @@ Machine::Machine(Rom *rom) {
 	debug = false;
     //Display
     wind.Create(sf::VideoMode(256, 240), "asdfNES", sf::Style::Close);
-    wind.SetFramerateLimit(60);// what is the right limit??
+    //wind.SetFramerateLimit(60);// what is the right limit??
     //print surface bits
     cout << "Depth Bits: " << wind.GetSettings().DepthBits << endl;
 	cpu = new CPU(this);
@@ -150,7 +151,10 @@ void Machine::run() {
             int cycles = cpu->execute_inst(inst);
 			ppu->set_mirroring(rom->mirror);
 			ppu->run();
-			apu->update(inst.op.cycles + inst.extra_cycles);
+			apu->update(cycles);
+			//if(inst.op.op == INC && inst.addr == 0x0c) {
+			//	cout << "FOOBAR 0x0c: " << int(get_mem(0x0c)) << endl;
+			//}
 			//rom->mapper->update();
 			run_interrupts();
 

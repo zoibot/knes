@@ -11,11 +11,18 @@ PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
 	debugi.Create(512, 480);
 	debugi.SetSmooth(false);
     vaddr = 0;
+	taddr = next_taddr = false;
     obj_addr = 0;
     mem = new byte[0x4000];
     obj_mem = new byte[0x100];
     debug_flag = false;
     cycle_count = 0;
+	odd_frame = false;
+	last_nmi = 0;
+	vbl_off = 0;
+	nmi_occurred = false;
+	a12high = false;
+	horiz_scroll = vert_scroll = false;
     sl = 0;
     cyc = 0;
 	pmask = 0;
@@ -38,11 +45,19 @@ PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
 
 byte PPU::read_register(byte num) {
     byte ret;
+	int cycles;
     switch(num) {
     case 2:
         ret = pstat;
         pstat &= ~(1 << 7);
         latch = false;
+		cycles = mach->cpu->cycle_count * 3;
+		if(cycles - last_nmi < 3) {
+			mach->suppress_nmi();
+			if(cycles - last_nmi == 0) {
+				ret = pstat;
+			}
+		}
         return ret;
     case 4:
         ret = obj_mem[obj_addr];
@@ -155,6 +170,8 @@ void PPU::set_mem(word addr, byte val) {
 }
 
 void PPU::new_scanline() {
+	vert_scroll = false;
+	horiz_scroll = false;
     int fineY = (vaddr & 0x7000) >> 12;
     if(fineY == 7) {
         if((vaddr & 0x3ff) >= 0x3c0) {
@@ -172,7 +189,6 @@ void PPU::new_scanline() {
     vaddr |= next_taddr & (0x400);
     vaddr |= ((fineY+1)&7) << 12;
     fine_x = xoff;
-    next_taddr = -1;
     //sprites
     cur_sprs.clear();
     //cout << (int)(((Sprite*)obj_mem) + 3)->y << endl;
@@ -191,9 +207,8 @@ void PPU::do_vblank(bool rendering_enabled) {
     int cycles = mach->cpu->cycle_count * 3 - cycle_count;
 	if(last_vblank_end < last_vblank_start) {
 		last_vblank_end = mach->cpu->cycle_count;
-		//cout << (last_vblank_start - last_vblank_end) << endl;
+		cout << (last_vblank_start - last_vblank_end) << endl;
 	}
-	pstat &= ~(1 << 7);
     if(341 - cyc > cycles) {
         cyc += cycles;
         cycle_count += cycles;
@@ -335,7 +350,7 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->PollEvent(event)) {
+		while (wind->GetEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();
@@ -375,8 +390,23 @@ void PPU::run() {
         if(sl == -2) {
             do_vblank(rendering_enabled);
 		} else if(sl == -1) {
-			cycle_count += 341;
-			sl += 1;
+			switch(cyc) {
+			case 0:
+				pstat &= ~(1 << 7);
+				vbl_off = cycle_count;
+				cycle_count += 340;
+				cyc += 340;
+			case 340:
+				if(bg_enabled) {
+					if(odd_frame) cycle_count -= 1;
+				}
+				odd_frame = !odd_frame;
+				cyc++;
+				cycle_count++;
+			case 341:
+				cyc = 0;
+				sl++;
+			}
         } else if(sl < 240) {
             int todo;
             if(341 - cyc > cycles) {
@@ -395,7 +425,7 @@ void PPU::run() {
             if(cyc == 341) {
                 cyc = 0;
                 sl += 1;
-                if(rendering_enabled) {
+                if(bg_enabled) {
                     new_scanline();
                 }
             }
@@ -408,7 +438,7 @@ void PPU::run() {
                 cyc = 0;
                 sl += 1;
                 pstat |= (1 << 7);
-				last_vblank_start = mach->cpu->cycle_count;
+				last_nmi = mach->cpu->cycle_count;
                 pstat &= ~(1 << 6);
                 if(pctrl & (1 << 7)) {
                     mach->request_nmi();
@@ -418,7 +448,7 @@ void PPU::run() {
 				}
             }
         } else {
-            cycle_count += 341 * 20;
+            cycle_count += 341 * 19;
             draw_frame();
         }
     }           

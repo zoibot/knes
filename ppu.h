@@ -34,8 +34,13 @@ private:
     sf::Image screen;
 	sf::RenderWindow debug;
 	sf::Image debugi;
+	//cycles
 	int cycle_count;
 	bool nmi_occurred;
+	bool odd_frame;
+	int last_nmi;
+	int vbl_off;
+	bool a12high;
     //memory
     byte* mem;
     byte mem_buf;
@@ -44,9 +49,12 @@ private:
     byte pmask;
     byte pstat;
     byte pctrl;
+	//prefetch
+
     //position
     byte xoff, fine_x;
     list<Sprite*> cur_sprs;
+	bool horiz_scroll, vert_scroll;
     //helpers
     void do_vblank(bool rendering_enabled);
     void render_pixels(byte x, byte y, byte num);

@@ -10,7 +10,7 @@ Opcode::Opcode(Op op, AddrMode amode, int cycles) {
 	this->addr_mode = amode;
 	this->cycles = cycles;
     this->extra_page_cross = 1;
-	if(op == STA || op == STX || op == STY)
+	if(op == STA || op == STX || op == STY || op == SAX)
 		store = true;
 }
 
@@ -131,12 +131,14 @@ Instruction CPU::next_instruction() {
 	case ABSY:
 		next.i_addr = next_word();
 		next.addr = (next.i_addr + y) & 0xffff;
+		next.operand = get_mem((next.i_addr&0xff00)|(next.addr&0xff));
 		if(!next.op.store) {
-			next.operand = get_mem(next.addr);
-		}
-		if((next.i_addr & 0xff00) != (next.addr & 0xff00)) {
-			extra_cycles += next.op.extra_page_cross;
-		}
+			if((next.i_addr & 0xff00) != (next.addr & 0xff00) 
+				|| next.op.extra_page_cross == 0) {
+				next.operand = get_mem(next.addr);
+				extra_cycles += next.op.extra_page_cross;
+			}
+		}	
 		next.args[0] = next.i_addr & 0xff;
 		next.args[1] = (next.i_addr & 0xff00) >> 8;
 		next.arglen = 2;
@@ -144,12 +146,14 @@ Instruction CPU::next_instruction() {
 	case ABSX:
 		next.i_addr = next_word();
 		next.addr = (next.i_addr + x) & 0xffff;
+		next.operand = get_mem((next.i_addr&0xff00)|(next.addr&0xff));
 		if(!next.op.store) {
-			next.operand = get_mem(next.addr);
-		}
-		if((next.i_addr & 0xff00) != (next.addr & 0xff00)) {
-			extra_cycles += next.op.extra_page_cross;
-		}
+			if((next.i_addr & 0xff00) != (next.addr & 0xff00) 
+				|| next.op.extra_page_cross == 0) {
+				next.operand = get_mem(next.addr);
+				extra_cycles += next.op.extra_page_cross;
+			}
+		}	
 		next.args[0] = next.i_addr & 0xff;
 		next.args[1] = (next.i_addr & 0xff00) >> 8;
 		next.arglen = 2;
@@ -162,6 +166,7 @@ Instruction CPU::next_instruction() {
 		break;
 	case IXID:
 		next.args[0] = next_byte();
+		get_mem(next.args[0]); //dummy
 		next.i_addr = (next.args[0] + x) & 0xff;
 		next.addr = (get_mem(next.i_addr) + (get_mem((next.i_addr+1) & 0xff) << 8));
 		if(!next.op.store) {
@@ -173,10 +178,12 @@ Instruction CPU::next_instruction() {
 		next.i_addr = next_byte();
 		next.addr = (get_mem(next.i_addr) + (get_mem((next.i_addr+1)&0xff)<<8)) + y;
 		next.addr &= 0xffff;
-		if(!next.op.store) {
+		//fetch from same page
+		next.operand = get_mem(((next.addr-y)&0xff00)|(next.addr&0xff));
+		if(((next.addr & 0xff00) != ((next.addr - y) & 0xff00) 
+				|| next.op.extra_page_cross == 0) && !next.op.store) {
+			//fetch correct address
 			next.operand = get_mem(next.addr);
-		}
-		if((next.addr & 0xff00) != ((next.addr - y) & 0xff00)) {
 			extra_cycles += next.op.extra_page_cross;
 		}
 		next.args[0] = next.i_addr;
@@ -184,6 +191,7 @@ Instruction CPU::next_instruction() {
 		break;
 	case ZPX:
 		next.i_addr = next_byte();
+		get_mem(next.i_addr); //dummy
 		next.addr = (next.i_addr + x) & 0xff;
 		if(!next.op.store) {
 			next.operand = get_mem(next.addr);
@@ -193,12 +201,17 @@ Instruction CPU::next_instruction() {
 		break;
 	case ZPY:
 		next.i_addr = next_byte();
+		get_mem(next.i_addr); //dummy
 		next.addr = (next.i_addr + y) & 0xff;
 		if(!next.op.store) {
 			next.operand = get_mem(next.addr);
 		}
 		next.args[0] = next.i_addr;
 		next.arglen = 1;
+		break;
+	case IMP:
+	case A:
+		get_mem(pc+1); //dummy read
 		break;
 	default:
 		next.arglen = 0;

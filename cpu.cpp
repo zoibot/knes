@@ -6,6 +6,7 @@ CPU::CPU(Machine *m) {
 	a = x = y = s = 0;
 	p = 0x24;
 	cycle_count = 0;
+	prev_cycles = 0;
 }
 void CPU::set_flag(byte flag, bool val) {
     if(val) {
@@ -23,12 +24,12 @@ void CPU::set_nz(byte val) {
 }
 
 byte CPU::get_mem(word addr) {
-	//cycle_count++;
+	cycle_count++;
 	return m->get_mem(addr);
 }
 
 void CPU::set_mem(word addr, byte val) {
-	//cycle_count++;
+	cycle_count++;
 	m->set_mem(addr, val);
 }
 
@@ -44,7 +45,6 @@ void CPU::nmi() {
     push(p);
 	set_flag(I, true);
     pc = get_mem(0xfffa) + (get_mem(0xfffb)<<8);
-	cycle_count += 7;
 }
 
 void CPU::irq() {
@@ -52,7 +52,6 @@ void CPU::irq() {
     push(p);
 	set_flag(I, true);
     pc = get_mem(0xfffe) + (get_mem(0xffff)<<8);
-	cycle_count += 7;
 }
 
 void CPU::reset() {
@@ -83,8 +82,10 @@ byte CPU::pop() {
 
 void CPU::branch(bool cond, Instruction &inst) {
     if(cond) {
+		get_mem(pc);
         inst.extra_cycles += 1;
         if ((inst.addr & 0xff00) != (pc & 0xff00)) {
+			get_mem((inst.addr & 0xff) | (pc & 0xff00));
             inst.extra_cycles += 1;
         }
         pc = inst.addr;
@@ -116,9 +117,12 @@ int CPU::execute_inst(Instruction inst) {
         pc = inst.addr;
         break;
     case RTS:
+		get_mem(0x100 | s);
         pc = pop2()+1;
+		get_mem(pc);
         break;
     case RTI:
+		get_mem(0x100 | s);
         p = (pop() | (1<<5)) & (~B);
         pc = pop2();
 		if(get_flag(I))
@@ -224,9 +228,11 @@ int CPU::execute_inst(Instruction inst) {
         push(p | B);
         break;
     case PLP:
+		get_mem(0x100|s);
         p = (pop() | (1 << 5)) & (~B);
         break;
     case PLA:
+		get_mem(0x100|s);
         a = pop();
         set_nz(a);
         break;
@@ -293,22 +299,26 @@ int CPU::execute_inst(Instruction inst) {
         set_nz(y);
         break;
     case INC:
+		set_mem(inst.addr, inst.operand);
         inst.operand += 1;
         inst.operand &= 0xff;
         set_nz(inst.operand);
         set_mem(inst.addr, inst.operand);
         break;
     case DEC:
+		set_mem(inst.addr, inst.operand);
         inst.operand -= 1;
         inst.operand &= 0xff;
         set_nz(inst.operand);
         set_mem(inst.addr, inst.operand);
         break;
     case DCP:
+		set_mem(inst.addr, inst.operand);
         set_mem(inst.addr, (inst.operand -1) & 0xff);
         compare(a, (inst.operand-1)&0xff);
         break;
     case ISB:
+		set_mem(inst.addr, inst.operand);
         inst.operand = (inst.operand + 1) & 0xff;
         set_mem(inst.addr, inst.operand);
 		a7 = a & (1 << 7);
@@ -330,6 +340,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
     case LSR:
         set_flag(C, inst.operand & 1);
+		set_mem(inst.addr, inst.operand);
         inst.operand >>= 1;
         set_mem(inst.addr, inst.operand);
         set_nz(inst.operand);
@@ -341,6 +352,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
     case ASL:
         set_flag(C, inst.operand & (1 << 7));
+		set_mem(inst.addr, inst.operand);
         inst.operand <<= 1;
         set_mem(inst.addr, inst.operand);
         set_nz(inst.operand);
@@ -392,11 +404,15 @@ int CPU::execute_inst(Instruction inst) {
 		t = y & (inst.args[1] + 1);
 		if(!inst.extra_cycles)
 			set_mem(inst.addr, t);
+		else
+			inst.extra_cycles = 0;
 		break;
 	case SXA:
 		t = x & (inst.args[1] + 1);
 		if(!inst.extra_cycles)
 			set_mem(inst.addr, t);
+		else
+			inst.extra_cycles = 0;
 		break;
     case ROR_A:
         t = a & 1;
@@ -408,6 +424,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
     case ROR:
         t = inst.operand & 1;
+		set_mem(inst.addr, inst.operand);
         inst.operand >>= 1;
         if(get_flag(C))
             inst.operand |= 1 << 7;
@@ -425,6 +442,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
     case ROL:
         t = inst.operand & (1 << 7);
+		set_mem(inst.addr, inst.operand);
         inst.operand <<= 1;
         if(get_flag(C))
             inst.operand |= 1;
@@ -442,6 +460,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
     case RLA:
         t = inst.operand & (1 << 7);
+		set_mem(inst.addr, inst.operand);
         inst.operand <<= 1;
         if(get_flag(C))
             inst.operand |= 1;
@@ -452,6 +471,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
     case SLO:
         set_flag(C, inst.operand & (1 << 7));
+		set_mem(inst.addr, inst.operand);
         inst.operand <<= 1;
         set_mem(inst.addr, inst.operand);
         a |= inst.operand;
@@ -459,6 +479,7 @@ int CPU::execute_inst(Instruction inst) {
         break;
 	case SRE:
 		set_flag(C, inst.operand & 1);
+		set_mem(inst.addr, inst.operand);
         inst.operand >>= 1;
         set_mem(inst.addr, inst.operand);
         a ^= inst.operand;
@@ -466,6 +487,7 @@ int CPU::execute_inst(Instruction inst) {
 		break;
     case RRA:
         t = inst.operand & 1;
+		set_mem(inst.addr, inst.operand);
         inst.operand >>= 1;
         if(get_flag(C))
             inst.operand |= 1 << 7;
@@ -495,8 +517,8 @@ int CPU::execute_inst(Instruction inst) {
         break;
     }
 
-    //int inst_cycles = cycle_count - prev_cycles;
-	//prev_cycles = cycle_count;
-	cycle_count += inst.op.cycles + inst.extra_cycles;
-	return inst.op.cycles+inst.extra_cycles;//inst_cycles;
+    int inst_cycles = cycle_count - prev_cycles;
+	prev_cycles = cycle_count;
+	//cycle_count += inst.op.cycles + inst.extra_cycles;
+	return inst_cycles;
 }
