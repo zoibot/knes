@@ -43,8 +43,7 @@ void CPU::nmi() {
     push2(pc);
     push(p);
 	set_flag(I, true);
-	cout << "NMI" << endl;
-    pc = get_mem(0xfffb) + (get_mem(0xfffa)<<8);
+    pc = get_mem(0xfffa) + (get_mem(0xfffb)<<8);
 	cycle_count += 7;
 }
 
@@ -113,13 +112,11 @@ int CPU::execute_inst(Instruction inst) {
         pc = inst.addr;
         break;
     case JSR:
-		cout << "PUSHING " << HEX4(pc) << endl;
         push2(pc-1);
         pc = inst.addr;
         break;
     case RTS:
         pc = pop2()+1;
-		cout << "POPPED " << HEX4(pc) << endl;
         break;
     case RTI:
         p = (pop() | (1<<5)) & (~B);
@@ -498,8 +495,8 @@ int CPU::execute_inst(Instruction inst) {
         break;
     }
 
-    int inst_cycles = cycle_count - prev_cycles;
-	prev_cycles = cycle_count;
-	cycle_count += inst.op.cycles;
+    //int inst_cycles = cycle_count - prev_cycles;
+	//prev_cycles = cycle_count;
+	cycle_count += inst.op.cycles + inst.extra_cycles;
 	return inst.op.cycles+inst.extra_cycles;//inst_cycles;
 }

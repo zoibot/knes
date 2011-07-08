@@ -1,6 +1,6 @@
 CC = g++
-CFLAGS = -Wall -g
-OBJECTS = main.o ppu.o machine.o rom.o mapper.o apu.o instruction.o
+CFLAGS = -Wall -O2
+OBJECTS = main.o cpu.o ppu.o machine.o rom.o mapper.o apu.o instruction.o
 LIBS = -lsfml-window -lsfml-system -lsfml-graphics -lsfml-audio
 
 default: nes

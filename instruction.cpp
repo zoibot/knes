@@ -204,5 +204,6 @@ Instruction CPU::next_instruction() {
 		next.arglen = 0;
 		break;
 	}
+    next.extra_cycles = extra_cycles;
 	return next;
 }

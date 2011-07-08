@@ -191,7 +191,7 @@ void PPU::do_vblank(bool rendering_enabled) {
     int cycles = mach->cpu->cycle_count * 3 - cycle_count;
 	if(last_vblank_end < last_vblank_start) {
 		last_vblank_end = mach->cpu->cycle_count;
-		cout << (last_vblank_start - last_vblank_end) << endl;
+		//cout << (last_vblank_start - last_vblank_end) << endl;
 	}
 	pstat &= ~(1 << 7);
     if(341 - cyc > cycles) {
@@ -335,7 +335,7 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->GetEvent(event)) {
+		while (wind->PollEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();

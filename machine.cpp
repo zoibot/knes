@@ -139,7 +139,7 @@ void Machine::run() {
     ofstream cout("LOG.TXT");
 	cout << uppercase << setfill('0');
 	Instruction inst;
-    debug = true;
+    //debug = true;
     while(1) {
         try {
             if(debug)
