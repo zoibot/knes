@@ -335,9 +335,10 @@ void PPU::new_scanline() {
         cur_sprs[i] = next_sprs[i];
     }
     num_next_sprs = 0;
+	int cury = sl;
     for(int i = 0; i < 64; i++) {
-        Sprite *s = ((Sprite*)obj_mem)+i;
-		if(s->y <= (sl-1) && ((sl-1) < s->y+8 || ((pctrl & (1<<5)) && (sl-1) < s->y+16))) {
+		Sprite *s = (Sprite*)(obj_mem+ (4*i));
+		if(s->y <= cury && (cury < s->y+8 || ((pctrl & (1<<5)) && cury < s->y+16))) {
             if(num_next_sprs == 8) {
                 break;
             }
@@ -437,7 +438,7 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->PollEvent(event)) {
+		while (wind->GetEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();
