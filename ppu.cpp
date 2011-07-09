@@ -23,7 +23,7 @@ PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
 	nmi_occurred = false;
 	a12high = false;
 	horiz_scroll = vert_scroll = false;
-    sl = 0;
+    sl = -2;
     cyc = 0;
 	pmask = 0;
 	pctrl = 0;
@@ -204,7 +204,6 @@ void PPU::new_scanline() {
     fine_x = xoff;
     //sprites
     cur_sprs.clear();
-    //cout << (int)(((Sprite*)obj_mem) + 3)->y << endl;
     for(int i = 0; i < 64; i++) {
         Sprite *s = ((Sprite*)obj_mem)+i;
 		if(s->y <= (sl-1) && ((sl-1) < s->y+8 || ((pctrl & (1<<5)) && (sl-1) < s->y+16))) {
@@ -395,8 +394,8 @@ void PPU::run() {
     bool bg_enabled = pmask & (1 << 3);
     bool sprite_enabled = pmask & (1 << 4);
     bool rendering_enabled = bg_enabled || sprite_enabled;
-    int cycles = mach->cpu->cycle_count * 3 - cycle_count;
     while(cycle_count < mach->cpu->cycle_count * 3) {
+        int cycles = mach->cpu->cycle_count * 3 - cycle_count;
         if(sl == -2) {
             do_vblank(rendering_enabled);
 		} else if(sl == -1) {
@@ -412,6 +411,7 @@ void PPU::run() {
 				vbl_off = cycle_count;
 				cycle_count += 340;
 				cyc += 340;
+                break;
 			case 340:
 				if(bg_enabled) {
 					if(odd_frame) cycle_count -= 1;
@@ -419,12 +419,13 @@ void PPU::run() {
 				odd_frame = !odd_frame;
 				cyc++;
 				cycle_count++;
+                break;
 			case 341:
 				cyc = 0;
 				sl++;
 			}
         } else if(sl < 240) {
-            int todo;
+            int todo = 0;
             if(341 - cyc > cycles) {
                 todo = cycles;
             } else {

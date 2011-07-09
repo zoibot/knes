@@ -24,8 +24,9 @@ void CPU::set_nz(byte val) {
 }
 
 byte CPU::get_mem(word addr) {
+	byte v = m->get_mem(addr);
 	cycle_count++;
-	return m->get_mem(addr);
+    return v;
 }
 
 void CPU::set_mem(word addr, byte val) {
@@ -55,12 +56,12 @@ void CPU::irq() {
 }
 
 void CPU::reset() {
-    cycle_count = 0;
     a = x = y = 0;
     p = 0x24;
     s -= 3;
     s &= 0xff;
     pc = get_mem(0xfffc) + (get_mem(0xfffd) << 8);
+    cycle_count = 0;
 }
 
 void CPU::push2(word val) {

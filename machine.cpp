@@ -140,7 +140,7 @@ void Machine::run() {
     ofstream cout("LOG.TXT");
 	cout << uppercase << setfill('0');
 	Instruction inst;
-    //debug = true;
+    debug = true;
     while(1) {
         try {
             if(debug)
@@ -170,6 +170,7 @@ void Machine::run() {
 				default:
 					cout << "test done: " << endl;
 					cout << (char*)(rom->prg_ram + 4) << endl;
+                    exit(0);
 					//cin.get();
 					break;
 				}
@@ -189,7 +190,8 @@ string Machine::dump_regs() {
     out << " P:" << HEX2(cpu->p);
     out << " SP:" << HEX2(cpu->s);
 	out << dec;
-    out << " CYC:" << ppu->cyc;
+    out << " CC:" << cpu->cycle_count;
+    out << " CYC: " << ppu->cyc;
     out << " SL:" << ppu->sl;
 	out << " VADDR: " << HEX4(ppu->vaddr);
 	int end;
