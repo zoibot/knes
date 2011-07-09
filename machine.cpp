@@ -86,6 +86,7 @@ Machine::Machine(Rom *rom) {
     //Display
     wind.Create(sf::VideoMode(256, 240), "asdfNES", sf::Style::Close);
     //wind.SetFramerateLimit(60);// what is the right limit??
+    wind.EnableVerticalSync(false);
     //print surface bits
     cout << "Depth Bits: " << wind.GetSettings().DepthBits << endl;
 	cpu = new CPU(this);
@@ -140,7 +141,7 @@ void Machine::run() {
     ofstream cout("LOG.TXT");
 	cout << uppercase << setfill('0');
 	Instruction inst;
-    debug = true;
+    //debug = true;
     while(1) {
         try {
             if(debug)
@@ -149,15 +150,10 @@ void Machine::run() {
             if(debug)
                 cout << inst << dump_regs() << endl; 
             int cycles = cpu->execute_inst(inst);
-			ppu->set_mirroring(rom->mirror);
 			ppu->run();
 			apu->update(cycles);
-			//if(inst.op.op == INC && inst.addr == 0x0c) {
-			//	cout << "FOOBAR 0x0c: " << int(get_mem(0x0c)) << endl;
-			//}
 			//rom->mapper->update();
 			run_interrupts();
-
 			//special handling for blargg tests
 			if(rom->prg_ram[1] == 0xde && rom->prg_ram[2] == 0xb0) {//&& mem[0x6003] == 0x61) {
 				switch(rom->prg_ram[0]) {
@@ -171,7 +167,6 @@ void Machine::run() {
 					cout << "test done: " << endl;
 					cout << (char*)(rom->prg_ram + 4) << endl;
                     exit(0);
-					//cin.get();
 					break;
 				}
 			}

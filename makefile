@@ -1,9 +1,12 @@
 CC = g++
-CFLAGS = -Wall -O2
+CFLAGS = -pg -Wall -O2
 OBJECTS = main.o cpu.o ppu.o machine.o rom.o mapper.o apu.o instruction.o
 LIBS = -lsfml-window -lsfml-system -lsfml-graphics -lsfml-audio
 
 default: nes
+
+clean:
+	rm $(OBJECTS) nes
 
 nes : $(OBJECTS)
 	$(CC) $(CFLAGS) $(LIBS) $(OBJECTS) -o nes
