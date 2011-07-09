@@ -15,15 +15,16 @@ struct Sprite {
     byte tile;
     byte attrs;
     byte x;
+    byte pattern_lo;
+    byte pattern_hi;
 };
 
-struct NameTable {
-};
-
-struct PatternTables {
-};
-
-struct Palette {
+struct Tile {
+    word nt_addr;
+    byte nt_val;
+    byte attr;
+    byte pattern_lo;
+    byte pattern_hi;
 };
 
 class PPU {
@@ -50,16 +51,23 @@ private:
     byte pstat;
     byte pctrl;
 	//prefetch
-
+    list<Tile> bg_prefetch;
+    Tile buf_tile;
+    Tile cur_tile;
+    Sprite next_sprs[8];
+    int num_next_sprs;
+    Sprite cur_sprs[8];
+    int num_sprs;
     //position
     byte xoff, fine_x;
-    list<Sprite*> cur_sprs;
 	bool horiz_scroll, vert_scroll;
     //helpers
     void do_vblank(bool rendering_enabled);
     void render_pixels(byte x, byte y, byte num);
     void new_scanline();
+    void update_vert_scroll();
     void draw_frame();
+    void prefetch_bytes(int start, int cycles);
     byte get_mem_mirrored(word addr);
     void set_mirror(word from, word to, word size);
 	NTMirroring current_mirroring;

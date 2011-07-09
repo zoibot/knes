@@ -182,35 +182,166 @@ void PPU::set_mem(word addr, byte val) {
     }
 }
 
+void PPU::prefetch_bytes(int start, int cycles) {
+    bool bg_enabled = pmask&(1<<3);
+    bool sprite_enabled = pmask&(1<<4);
+    if(!bg_enabled && !sprite_enabled) {
+        return;
+    }
+    int base_pt_addr = 0;
+    if(pctrl & (1<<4)) base_pt_addr = 0x1000;
+    int base_spr_addr = 0;
+    if(pctrl & (1<<3)) base_spr_addr = 0x1000;
+    for(int j = start; j < (start+cycles); j++) {
+        if(!(j&1)) continue;
+        int i = j/2;
+        if(i < 124) {
+            int at_base, pt_addr;
+            int fineY = (vaddr >> 12) & 7;
+            int nt_addr = 0x2000 + (vaddr & 0xfff);
+            buf_tile.nt_addr = nt_addr;
+            switch(i%4) {
+            case 0:
+                buf_tile.nt_val = get_mem(nt_addr);
+                break;
+            case 1:
+                at_base = (nt_addr & (~0x3ff)) + 0x3c0;
+                buf_tile.attr = get_mem(at_base + ((nt_addr & 0x1f)>>2)
+                                                + ((nt_addr&0x3e0)>>7)*8);
+                break;
+            case 2:
+                pt_addr = (buf_tile.nt_val << 4) + base_pt_addr;
+                buf_tile.pattern_lo = get_mem(pt_addr + fineY);
+                break;
+            case 3:
+                pt_addr = (buf_tile.nt_val << 4) + base_pt_addr;
+                buf_tile.pattern_hi = get_mem(pt_addr + 8 + fineY);
+                bg_prefetch.push_back(buf_tile);
+                if((vaddr & 0x1f) == 0x1f) {
+                    vaddr ^= 0x400;
+                    vaddr -= 0x1f;
+                } else {
+                    vaddr++;
+                }
+                break;
+            }
+        } else if(128 <= i && i < 160) {
+            Sprite cur = next_sprs[(i-128)/4];
+            int tile = 0;
+            int ysoff = sl - cur.y;
+            if(pctrl&(1<<5)) { //8x16
+                if(cur.attrs&(1<<7)) {
+                    ysoff = 15-ysoff;
+                }
+                tile = cur.tile;
+                base_spr_addr = (tile&1) << 12;
+                tile &= ~1;
+                if(ysoff > 7) {
+                    ysoff -= 8;
+                    tile |= 1;
+                }
+            } else {
+                tile = cur.tile;
+                if(cur.attrs & (1<<7)) {
+                    ysoff = 7-ysoff;
+                }
+            }
+            int pat = (tile<<4) + base_spr_addr;
+            switch(i%4) {
+            case 0:
+                break;
+            case 2:
+                next_sprs[(i-128)/4].pattern_lo = get_mem(pat+ysoff);
+                break;
+            case 3:
+                next_sprs[(i-128)/4].pattern_hi = get_mem(pat+8+ysoff);
+                break;
+            }
+        } else if(160 <= i && i < 168) {
+            int at_base, pt_addr;
+            int fineY = (vaddr >> 12) & 7;
+            int nt_addr = 0x2000 + (vaddr & 0xfff);
+            buf_tile.nt_addr = nt_addr;
+            switch(i%4) {
+            case 0:
+                buf_tile.nt_val = get_mem(nt_addr);
+                break;
+            case 1:
+                at_base = (nt_addr & (~0x3ff)) + 0x3c0;
+                buf_tile.attr = get_mem(at_base + ((nt_addr & 0x1f)>>2)
+                                                + ((nt_addr&0x3e0)>>7)*8);
+                break;
+            case 2:
+                pt_addr = (buf_tile.nt_val << 4) + base_pt_addr;
+                buf_tile.pattern_lo = get_mem(pt_addr + fineY);
+                break;
+            case 3:
+                pt_addr = (buf_tile.nt_val << 4) + base_pt_addr;
+                buf_tile.pattern_hi = get_mem(pt_addr + 8 + fineY);
+                bg_prefetch.push_back(buf_tile);
+                if((vaddr & 0x1f) == 0x1f) {
+                    vaddr ^= 0x400;
+                    vaddr -= 0x1f;
+                } else {
+                    vaddr++;
+                }
+                break;
+            }
+        } 
+        if(i == 68) {
+            if(num_next_sprs == 8) {
+                pstat |= 1<<5;
+            }
+        } else if(i == 126) {
+            update_vert_scroll();
+        } else if(i == 128) {
+            //horizontal scroll
+            vaddr &= ~0x41f;
+            vaddr |= taddr & 0x1f;
+            vaddr |= taddr & 0x400;
+            //fineX = xoff; ? TODO
+        }
+    }
+}
+
+void PPU::update_vert_scroll() {
+    int fineY = (vaddr & 0x7000) >> 12;
+    if(fineY == 7) {
+        if((vaddr&0x3ff) >= 0x3e0) {
+            vaddr &= ~0x3ff;
+        } else {
+            vaddr += 0x20;
+            if((vaddr&0x3ff) >= 0x3c0) {
+                vaddr &= ~0x3ff;
+                vaddr ^= 0x800;
+            }
+        }
+    }
+    vaddr &= ~0x7000;
+    vaddr |= ((fineY + 1) & 7) << 12;
+}
+
 void PPU::new_scanline() {
 	vert_scroll = false;
 	horiz_scroll = false;
-    int fineY = (vaddr & 0x7000) >> 12;
-    if(fineY == 7) {
-        if((vaddr & 0x3ff) >= 0x3c0) {
-			vaddr &= ~0x3ff;
-        } else {
-			vaddr += 0x20;
-			if((vaddr & 0x3ff) >= 0x3c0) {
-				vaddr &= ~0x3ff;
-				vaddr ^= 0x800;
-			}
-		}
+    while(bg_prefetch.size() > 2) {
+        bg_prefetch.pop_front();
     }
-    vaddr &= ~0x741f;
-    vaddr |= next_taddr & 0x1f;
-    vaddr |= next_taddr & (0x400);
-    vaddr |= ((fineY+1)&7) << 12;
-    fine_x = xoff;
+    cur_tile = bg_prefetch.front();
+    bg_prefetch.pop_front();
     //sprites
-    cur_sprs.clear();
+    num_sprs = num_next_sprs;
+    for(int i = 0; i < num_sprs; i++) {
+        cur_sprs[i] = next_sprs[i];
+    }
+    num_next_sprs = 0;
     for(int i = 0; i < 64; i++) {
         Sprite *s = ((Sprite*)obj_mem)+i;
 		if(s->y <= (sl-1) && ((sl-1) < s->y+8 || ((pctrl & (1<<5)) && (sl-1) < s->y+16))) {
-			if(i == 0 && s->y >= 238) {
-				debug_flag = true;
-			}
-            cur_sprs.push_back(s);
+            if(num_next_sprs == 8) {
+                break;
+            }
+            next_sprs[num_next_sprs++] = *s;
         }
     }
 }
@@ -234,33 +365,16 @@ void PPU::do_vblank(bool rendering_enabled) {
 void PPU::render_pixels(byte x, byte y, byte num) {
     bool bg_enabled = pmask & (1 << 3);
     bool sprite_enabled = pmask & (1 << 4);
-    int fineY = (vaddr >> 12) & 7;
     int xoff = cyc;
-    word base_pt_addr;
-    if(pctrl & (1<<4)) {
-        base_pt_addr = 0x1000;
-    } else {
-        base_pt_addr = 0x0;
-    }
-    word base_spr_addr;
-    if(pctrl & 8) {
-        base_spr_addr = 0x1000;
-    } else {
-        base_spr_addr = 0x0;
-    }
     while(num) {
-        word nt_addr = 0x2000 | (vaddr & 0xfff);
-        word at_base = (nt_addr & (~0x3ff)) + 0x3c0;
-        byte nt_val = get_mem(nt_addr);
-        word pt_addr = (nt_val << 4) + base_pt_addr;
-        byte row = (nt_addr >> 6) & 1;
-        byte col = (nt_addr & 2) >> 1;
-        byte at_val = get_mem(at_base + ((nt_addr & 0x1f)>>2) + ((nt_addr & 0x3e0) >> 7)*8);
+        byte row = (cur_tile.nt_addr >> 6) & 1;
+        byte col = (cur_tile.nt_addr & 2) >> 1;
+        byte at_val = cur_tile.attr;
         at_val >>= 4 * row + 2 * col;
         at_val &= 3;
         at_val <<= 2;
-        byte hi = get_mem(pt_addr+8+fineY);
-        byte lo = get_mem(pt_addr+fineY);
+        byte hi = cur_tile.pattern_hi;
+        byte lo = cur_tile.pattern_lo;
         hi >>= (7-fine_x);
         hi &= 1;
         hi <<= 1;
@@ -269,59 +383,24 @@ void PPU::render_pixels(byte x, byte y, byte num) {
         word coli = 0x3f00;
         if((hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)))
             coli |= at_val | hi | lo;
-		if(debug_flag) {
-			cout << "on the outside" << endl;
-			cout << sprite_enabled << endl;
-			//cin.get();
-		}
         if(sprite_enabled && !(xoff < 8 && !(pmask & 4))) {
             Sprite *cur = NULL;
-            for(list<Sprite*>::iterator i = cur_sprs.begin(); i != cur_sprs.end(); i++) {
-                if(((*i)->x <= xoff) && (xoff < ((*i)->x+8))) {
-                    cur = (*i);
+            for(int i = 0; i < num_sprs; i++) {
+                if((cur_sprs[i].x <= xoff) && (xoff < (cur_sprs[i].x+8))) {
+                    cur = &cur_sprs[i];
                     byte pal = (1<<4) | ((cur->attrs & 3) << 2);
                     byte xsoff = xoff-cur->x;
                     if(cur->attrs & (1<<6))
                         xsoff = 7-xsoff;
-                    byte ysoff = y-cur->y-1;
-					byte tile;
-					if(pctrl & (1<<5)) {
-						if(cur->attrs & (1<<7))
-							ysoff = 15-ysoff;
-						tile = cur->tile;
-						base_spr_addr = (tile & 1) << 12;
-						tile &= ~1;
-						if(ysoff > 7) {
-							ysoff -= 8;
-							tile |= 1;
-						}
-					} else {
-						tile = cur->tile;
-						if(cur->attrs & (1<<7))
-							ysoff = 7-ysoff;
-					}
-                    word pat = (tile * 0x10) | base_spr_addr;
-                    byte shi = get_mem(pat+8+ysoff);
-                    byte slo = get_mem(pat+ysoff);
+                    byte shi = cur->pattern_hi;
+                    byte slo = cur->pattern_lo;
                     shi >>= (7-xsoff);
                     shi &= 1;
                     shi <<= 1;
                     slo >>= (7-xsoff);
                     slo &= 1;
-					/*if(y >= 238) {
-						cout << "spr " << endl;
-						cout << "y: " << cur->y << endl;
-						cout << "x: " << cur->x << endl;
-					}*/
                     if((cur == (Sprite*)obj_mem) && (shi|slo) && (hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)) && xoff < 255) {
                         pstat |= 1<<6; // spr hit 0
-                       /* cout << " sprite 0 hit " << endl;
-                        cout << int(xoff) << endl;
-                        cout << int(y) << endl;
-                        cout << HEX2(cur->attrs) << endl;
-                        cout << HEX2(cur->x) << endl;
-                        cout << HEX2(cur->y) << endl;
-                        cout << HEX2(cur->tile) << endl;*/
                     }
                     if((!(hi|lo) && (shi|slo)) || !(cur->attrs & (1<<5))) {
                         if(shi|slo) {
@@ -340,11 +419,10 @@ void PPU::render_pixels(byte x, byte y, byte num) {
         fine_x &= 7;
         xoff++;
         if(!fine_x) {
-            if((vaddr & 0x1f) == 0x1f) {
-                vaddr ^= 0x400;
-                vaddr -= 0x1f;
+            if(bg_prefetch.size() < 1) {
             } else {
-                vaddr++;
+                cur_tile = bg_prefetch.front();
+                bg_prefetch.pop_front();
             }
         }
         num--;
@@ -409,8 +487,15 @@ void PPU::run() {
 				pstat &= ~(1 << 6);
 				pstat &= ~(1 << 5);
 				vbl_off = cycle_count;
-				cycle_count += 340;
-				cyc += 340;
+				cycle_count += 304;
+				cyc += 304;
+                break;
+            case 304:
+                if(bg_enabled) {
+                    vaddr = taddr;
+                }
+                cycle_count += 36;
+                cyc += 36;
                 break;
 			case 340:
 				if(bg_enabled) {
@@ -421,8 +506,13 @@ void PPU::run() {
 				cycle_count++;
                 break;
 			case 341:
+                if(bg_enabled) {
+                    prefetch_bytes(0, 341);
+                }
 				cyc = 0;
 				sl++;
+                if(bg_enabled) 
+                    new_scanline();
 			}
         } else if(sl < 240) {
             int todo = 0;
@@ -432,17 +522,17 @@ void PPU::run() {
                 todo = 341 - cyc;
             }
             int y = sl;
-            if(rendering_enabled && cyc < 256) {
-                render_pixels(cyc, y, min(todo, 256-cyc));
-            } else if(cyc >= 257) {
-                next_taddr = taddr;
+            if(rendering_enabled) {
+                prefetch_bytes(cyc, todo);
+                if(cyc < 256)
+                    render_pixels(cyc, y, min(todo, 256-cyc));
             }
             cyc += todo;
             cycle_count += todo;
             if(cyc == 341) {
                 cyc = 0;
                 sl += 1;
-                if(bg_enabled) {
+                if(rendering_enabled) {
                     new_scanline();
                 }
             }
