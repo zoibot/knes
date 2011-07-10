@@ -66,7 +66,7 @@ void Machine::set_mem(word addr, byte val) {
                 byte addr = v + ppu->obj_addr;
                 ppu->obj_mem[addr] = mem[(val << 8)+v];
             }
-            //TODO cycles???
+            cpu->cycle_count += 513;
             break;
         default:
             apu->write_register(addr - 0x4000, val);
@@ -185,9 +185,9 @@ string Machine::dump_regs() {
     out << " P:" << HEX2(cpu->p);
     out << " SP:" << HEX2(cpu->s);
 	out << dec;
-    out << " CC:" << cpu->cycle_count;
-    out << " CYC: " << ppu->cyc;
-    out << " SL:" << ppu->sl;
+    //out << " CC:" << cpu->cycle_count;
+    out << "  CYC: " << ppu->cyc;
+    out << " SL: " << ppu->sl;
 	out << " VADDR: " << HEX4(ppu->vaddr);
 	int end;
 	if(ppu->last_vblank_end > ppu->last_vblank_start) {
@@ -195,6 +195,6 @@ string Machine::dump_regs() {
 	} else {
 		end = cpu->cycle_count;
 	}
-	out << " FC: " << dec << (end - ppu->last_vblank_start);
+	//out << " FC: " << dec << (end - ppu->last_vblank_start);
     return out.str();
 }

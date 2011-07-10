@@ -40,7 +40,6 @@ PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
 	}
 	current_mirroring = FOUR_SCREEN;
 	set_mirroring(mach->rom->mirror);
-	//set_mirroring(SINGLE_LOWER);
 }
 
 byte PPU::read_register(byte num) {
@@ -362,7 +361,6 @@ void PPU::do_vblank(bool rendering_enabled) {
         cyc = 0;
         sl += 1;
         if(rendering_enabled) {
-            vaddr = taddr;
             fine_x = xoff;
         }
     }
@@ -407,9 +405,6 @@ void PPU::render_pixels(byte x, byte y, byte num) {
                     slo &= 1;
 					if((cur->index == 0) && (shi|slo) && (hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)) && xoff < 255) {
                         pstat |= 1<<6; // spr hit 0
-						cout << "SL: " << sl << endl;
-						cout << "y: " << int(cur->y) << endl;
-						cout << "pat " << (cur->pattern_hi | cur->pattern_lo) << endl;
                     }
                     if((!(hi|lo) && (shi|slo)) || !(cur->attrs & (1<<5))) {
                         if(shi|slo) {
@@ -446,7 +441,7 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->GetEvent(event)) {
+		while (wind->PollEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();
@@ -516,7 +511,7 @@ void PPU::run() {
                 break;
 			case 341:
                 if(bg_enabled) {
-                    prefetch_bytes(0, 341);
+                    prefetch_bytes(320, 21);
                 }
 				cyc = 0;
 				sl++;
@@ -556,7 +551,6 @@ void PPU::run() {
                 pstat |= (1 << 7);
 				last_nmi = cycle_count;
 		        last_vblank_start = mach->cpu->cycle_count;
-                pstat &= ~(1 << 6);
                 if(pctrl & (1 << 7)) {
                     mach->request_nmi();
 					nmi_occurred = true;
