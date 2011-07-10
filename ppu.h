@@ -15,6 +15,7 @@ struct Sprite {
     byte tile;
     byte attrs;
     byte x;
+	byte index;
     byte pattern_lo;
     byte pattern_hi;
 };

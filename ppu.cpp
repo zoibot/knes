@@ -336,13 +336,18 @@ void PPU::new_scanline() {
     }
     num_next_sprs = 0;
 	int cury = sl;
+	if(cury == 240) {
+		num_next_sprs = 0;
+		return;
+	}
     for(int i = 0; i < 64; i++) {
 		Sprite *s = (Sprite*)(obj_mem+ (4*i));
-		if(s->y <= cury && (cury < s->y+8 || ((pctrl & (1<<5)) && cury < s->y+16))) {
+		if(s->y <= cury && ((cury < (s->y+8)) || ((pctrl & (1<<5)) && (cury < (s->y+16))))) {
             if(num_next_sprs == 8) {
                 break;
             }
-            next_sprs[num_next_sprs++] = *s;
+            next_sprs[num_next_sprs] = *s;
+			next_sprs[num_next_sprs++].index = i; 
         }
     }
 }
@@ -400,8 +405,11 @@ void PPU::render_pixels(byte x, byte y, byte num) {
                     shi <<= 1;
                     slo >>= (7-xsoff);
                     slo &= 1;
-                    if((cur == (Sprite*)obj_mem) && (shi|slo) && (hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)) && xoff < 255) {
+					if((cur->index == 0) && (shi|slo) && (hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)) && xoff < 255) {
                         pstat |= 1<<6; // spr hit 0
+						cout << "SL: " << sl << endl;
+						cout << "y: " << int(cur->y) << endl;
+						cout << "pat " << (cur->pattern_hi | cur->pattern_lo) << endl;
                     }
                     if((!(hi|lo) && (shi|slo)) || !(cur->attrs & (1<<5))) {
                         if(shi|slo) {
