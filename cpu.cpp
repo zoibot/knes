@@ -127,7 +127,7 @@ int CPU::execute_inst(Instruction inst) {
         p = (pop() | (1<<5)) & (~B);
         pc = pop2();
 		if(get_flag(I))
-			m->scheduled_irq = 0;
+			m->scheduled_irq = -1;
 		else if(m->irq_waiting)
 			m->scheduled_irq = 1;
         break;
