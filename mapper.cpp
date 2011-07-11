@@ -9,11 +9,9 @@ NROM::NROM(Rom *rom) : Mapper(rom) {
 }
 
 void NROM::prg_write(word addr, byte val) {};
-void NROM::load_prg(int prg_size) {
+void NROM::load() {
 	rom->prg_rom[0] = rom->prg_banks;
-	rom->prg_rom[1] = rom->prg_banks + 0x4000 * (prg_size - 1);
-}
-void NROM::load_chr() {
+	rom->prg_rom[1] = rom->prg_banks + 0x4000 * (rom->prg_size - 1);
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
 }
@@ -28,11 +26,9 @@ void UNROM::prg_write(word addr, byte val) {
 	bank = val & 7;
 	rom->prg_rom[0] = rom->prg_banks + (0x4000 * bank);
 };
-void UNROM::load_prg(int prg_size) {
+void UNROM::load() {
 	rom->prg_rom[0] = rom->prg_banks;
-	rom->prg_rom[1] = rom->prg_banks + (prg_size - 1) * 0x4000;
-}
-void UNROM::load_chr() {
+	rom->prg_rom[1] = rom->prg_banks + (rom->prg_size - 1) * 0x4000;
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
 }
@@ -46,14 +42,12 @@ void CNROM::prg_write(word addr, byte val) {
 	rom->chr_rom[0] = rom->chr_banks + (0x2000 * (val & 3));
 	rom->chr_rom[1] = rom->chr_banks + (0x2000 * (val & 3)) + 0x1000;
 };
-void CNROM::load_prg(int prg_size) {
+void CNROM::load() {
 	rom->prg_rom[0] = rom->prg_banks;
 	rom->prg_rom[1] = rom->prg_banks;
-	if(prg_size > 1) {
+	if(rom->prg_size > 1) {
 		rom->prg_rom[1] += 0x4000;
 	}
-}
-void CNROM::load_chr() {
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
 }
@@ -63,22 +57,22 @@ string CNROM::name() {
 
 MMC1::MMC1(Rom *rom) : Mapper(rom) {
 	control = 0xc;
-	load = 0;
+	loadr = 0;
 	shift = 0;
 	prg_bank = 0;
 }
 void MMC1::prg_write(word addr, byte val) {
-	load |= (val & 1) << shift;
+	loadr |= (val & 1) << shift;
 	shift += 1;
 	if(val & 0x80) {
-		load = 0;
+		loadr = 0;
 		shift = 0;
 		control |= 0xc;
 		return;
 	}
 	if(shift == 5) {
 		if(addr < 0xa000) {
-			switch(load & 3) {
+			switch(loadr & 3) {
 			case 0:
 				rom->mirror = SINGLE_LOWER;
 				break;
@@ -92,37 +86,37 @@ void MMC1::prg_write(word addr, byte val) {
 				rom->mirror = HORIZONTAL;
 				break;
 			}
-			if((control & 0xc) != (load & 0xc)) {
-				control = load;
+			if((control & 0xc) != (loadr & 0xc)) {
+				control = loadr;
 				update_prg_bank();
 			}
-			control = load;
+			control = loadr;
 		} else if(addr < 0xc000) {
 			cout << "switching char bank" << endl;
 			//chr bank 0
 			if(control & (1<<5)) {
 				//4kb mode
-				rom->chr_rom[0] = rom->chr_banks + 0x1000 * load;
+				rom->chr_rom[0] = rom->chr_banks + 0x1000 * loadr;
 			} else {
-				rom->chr_rom[0] = rom->chr_banks + 0x1000 * (load & 0x1e);
-				rom->chr_rom[1] = rom->chr_banks + 0x1000 * (load | 1);
+				rom->chr_rom[0] = rom->chr_banks + 0x1000 * (loadr & 0x1e);
+				rom->chr_rom[1] = rom->chr_banks + 0x1000 * (loadr | 1);
 			}
 		} else if(addr < 0xe000) {
 			cout << "switching char bank" << endl;
 			//chr bank 1
 			if(control & (1<<5)) {
 				//4kb mode
-				rom->chr_rom[1] = rom->chr_banks + 0x1000 * load;
+				rom->chr_rom[1] = rom->chr_banks + 0x1000 * loadr;
 			} else {
 				//8kb ignore
 			}
 		} else {
 			//prg bank
-			prg_bank = load;
+			prg_bank = loadr;
 			update_prg_bank();
 		}
 		shift = 0;
-		load = 0;
+		loadr = 0;
 	}
 };
 void MMC1::update_prg_bank() {
@@ -144,11 +138,9 @@ void MMC1::update_prg_bank() {
 	}
 }
 
-void MMC1::load_prg(int prg_size) {
+void MMC1::load() {
 	rom->prg_rom[0] = rom->prg_banks;
 	rom->prg_rom[1] = rom->prg_banks + 0x4000 * (rom->prg_size - 1);
-}
-void MMC1::load_chr() {
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
 }
@@ -167,11 +159,9 @@ void AXROM::prg_write(word addr, byte val) {
 		rom->mirror = SINGLE_UPPER;
 	}
 };
-void AXROM::load_prg(int prg_size) {
+void AXROM::load() {
 	rom->prg_rom[0] = rom->prg_banks;
 	rom->prg_rom[1] = rom->prg_banks + 0x4000;// * (prg_size - 1);
-}
-void AXROM::load_chr() {
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
 }

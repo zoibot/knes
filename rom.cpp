@@ -67,8 +67,7 @@ Rom::Rom(istream& f, string fname) {
 	} else {
 		chr_banks = new byte[0x2000];
 	}
-	mapper->load_prg(prg_size);
-	mapper->load_chr();
+	mapper->load();
     //flags9,flags10
     cout << "prg size " << int(prg_size) << endl;
     cout << "chr size " << int(chr_size) << endl;

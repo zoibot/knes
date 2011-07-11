@@ -10,8 +10,7 @@ class Mapper {
 public:
 	Rom *rom;
 	virtual void prg_write(word addr, byte val) = 0;
-	virtual void load_prg(int prg_size) = 0;
-	virtual void load_chr() = 0;
+	virtual void load() = 0;
 	virtual string name() = 0;
 	Mapper(Rom *rom);
 };
@@ -19,8 +18,7 @@ public:
 class NROM : public Mapper {
 public:
 	void prg_write(word addr, byte val);
-	void load_prg(int prg_size);
-	void load_chr();
+	void load();
 	string name();
 	NROM(Rom *rom);
 };
@@ -29,8 +27,7 @@ class UNROM : public Mapper {
 public:
 	int bank;
 	void prg_write(word addr, byte val);
-	void load_prg(int prg_size);
-	void load_chr();
+	void load();
 	string name();
 	UNROM(Rom *rom);
 };
@@ -38,22 +35,20 @@ public:
 class CNROM : public Mapper {
 public:
 	void prg_write(word addr, byte val);
-	void load_prg(int prg_size);
-	void load_chr();
+	void load();
 	string name();
 	CNROM(Rom *rom);
 };
 
 class MMC1 : public Mapper {
-	byte load;
+	byte loadr;
 	byte control;
 	byte shift;
 	byte prg_bank;
 	void update_prg_bank();
 public:
 	void prg_write(word addr, byte val);
-	void load_prg(int prg_size);
-	void load_chr();
+	void load();
 	string name();
 	MMC1(Rom *rom);
 };
@@ -61,8 +56,7 @@ public:
 class AXROM : public Mapper {
 public:
 	void prg_write(word addr, byte val);
-	void load_prg(int prg_size);
-	void load_chr();
+	void load();
 	string name();
 	AXROM(Rom *rom);
 };
