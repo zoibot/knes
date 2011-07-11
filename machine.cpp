@@ -41,7 +41,9 @@ byte Machine::get_mem(word addr) {
     } else if(addr < 0x8000) {
         return rom->prg_ram[addr-0x6000];
     } else {
-        return rom->prg_rom[(addr & 0x4000)>>14][addr&0x3fff];
+        int bank = (addr & rom->prg_bank_mask)>>rom->prg_bank_shift;
+        int bank_offset = addr&((1<<rom->prg_bank_shift)-1);
+        return rom->prg_rom[bank][addr&bank_offset];
     }
 }
 
@@ -56,7 +58,7 @@ void Machine::set_mem(word addr, byte val) {
         case 0x4016:
             if(val & 1) {
                 for(int i = 0; i < 8; i++) {
-                    keys[i] = wind.GetInput().IsKeyDown(keymap[i]);
+                    keys[i] = sf::Keyboard::IsKeyPressed(keymap[i]);
                 }
             }
             read_input_state = 0;
@@ -152,7 +154,7 @@ void Machine::run() {
             int cycles = cpu->execute_inst(inst);
 			ppu->run();
 			apu->update(cycles);
-			//rom->mapper->update();
+			rom->mapper->update(this);
 			run_interrupts();
 			//special handling for blargg tests
 			if(rom->prg_ram[1] == 0xde && rom->prg_ram[2] == 0xb0) {//&& mem[0x6003] == 0x61) {
@@ -189,12 +191,6 @@ string Machine::dump_regs() {
     out << "  CYC: " << ppu->cyc;
     out << " SL: " << ppu->sl;
 	out << " VADDR: " << HEX4(ppu->vaddr);
-	int end;
-	if(ppu->last_vblank_end > ppu->last_vblank_start) {
-		end = ppu->last_vblank_end;
-	} else {
-		end = cpu->cycle_count;
-	}
 	//out << " FC: " << dec << (end - ppu->last_vblank_start);
     return out.str();
 }

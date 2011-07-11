@@ -75,6 +75,7 @@ byte PPU::read_register(byte num) {
             vaddr += 1;
         }
         vaddr &= 0x3fff;
+        a12high = vaddr & 0x1000;
         return ret;
     }
     return 0;
@@ -129,6 +130,7 @@ void PPU::write_register(byte num, byte val) {
             taddr &= ~0xff;
             taddr |= val;
             vaddr = taddr;
+            a12high = vaddr & 0x1000;
         } else {
             taddr &= 0xff;
             taddr |= (val & 0x3f) << 8;
@@ -143,6 +145,7 @@ void PPU::write_register(byte num, byte val) {
             vaddr += 1;
         }
         vaddr &= 0x3fff;
+        a12high = vaddr & 0x1000;
         break;
     }
 }
@@ -159,7 +162,10 @@ byte PPU::get_mem_mirrored(word addr) {
 
 byte PPU::get_mem(word addr) {
     if(addr < 0x2000) {
-        return mach->rom->chr_rom[(addr&0x1000)>>12][addr&0xfff];
+        a12high = addr & 0x1000;
+        int bank = (addr&mach->rom->chr_bank_mask)>>mach->rom->chr_bank_shift;
+        int bank_offset = addr&((1<<mach->rom->chr_bank_shift)-1);
+        return mach->rom->chr_rom[bank][bank_offset];
     } else if(addr < 0x3000) {
         return mem[mirror_table[addr]];
     } else if(addr < 0x3f00) {
@@ -172,6 +178,7 @@ byte PPU::get_mem(word addr) {
 
 void PPU::set_mem(word addr, byte val) {
     if(addr < 0x2000) {
+        a12high = addr & 0x1000;
         mach->rom->chr_rom[(addr&0x1000)>>12][addr&0xfff] = val;
     } else if(addr < 0x3f00) {
         mem[mirror_table[addr]] = val;
@@ -442,28 +449,28 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->GetEvent(event)) {
+		while (wind->PollEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();
 				exit(0);
 			} else if (event.Type == sf::Event::KeyReleased) {
-				if(event.Key.Code == sf::Key::T) {
+				if(event.Key.Code == sf::Keyboard::T) {
 					screen.SaveToFile("sshot.jpg");
-				} else if(event.Key.Code == sf::Key::N) {
+				} else if(event.Key.Code == sf::Keyboard::N) {
 					dump_nts();
-				} else if(event.Key.Code == sf::Key::P) {
+				} else if(event.Key.Code == sf::Keyboard::P) {
 					paused = !paused;
-				} else if(event.Key.Code == sf::Key::Y) {
+				} else if(event.Key.Code == sf::Keyboard::Y) {
 					for(int i = 0; i < 64; i++) {
 						Sprite *s = ((Sprite*)obj_mem)+i;
 						if(s->y < 16) {
 							cout << (int)s->y << endl;
 						}
 					}
-				} else if(event.Key.Code == sf::Key::D) {
+				} else if(event.Key.Code == sf::Keyboard::D) {
 					mach->debug = false;
-				} else if(event.Key.Code == sf::Key::Q) {
+				} else if(event.Key.Code == sf::Keyboard::Q) {
 					//ZOOOM
 					wind->SetSize(1024, 960);
 				}

@@ -1,5 +1,6 @@
 #include "mapper.h"
 #include "rom.h"
+#include "machine.h"
 
 Mapper::Mapper(Rom *rom) {
 	this->rom = rom;
@@ -14,7 +15,12 @@ void NROM::load() {
 	rom->prg_rom[1] = rom->prg_banks + 0x4000 * (rom->prg_size - 1);
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
+    rom->chr_bank_mask = 0x1000;
+    rom->chr_bank_shift = 12;
 }
+void NROM::update(Machine *m) {};
 string NROM::name() {
 	return "NROM";
 };
@@ -31,7 +37,12 @@ void UNROM::load() {
 	rom->prg_rom[1] = rom->prg_banks + (rom->prg_size - 1) * 0x4000;
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
+    rom->chr_bank_mask = 0x1000;
+    rom->chr_bank_shift = 12;
 }
+void UNROM::update(Machine *m) {};
 string UNROM::name() {
 	return "UNROM";
 };
@@ -50,7 +61,12 @@ void CNROM::load() {
 	}
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
+    rom->chr_bank_mask = 0x1000;
+    rom->chr_bank_shift = 12;
 }
+void CNROM::update(Machine *m) {};
 string CNROM::name() {
 	return "CNROM";
 };
@@ -137,16 +153,164 @@ void MMC1::update_prg_bank() {
 			break;
 	}
 }
+void MMC1::update(Machine *m) {};
 
 void MMC1::load() {
 	rom->prg_rom[0] = rom->prg_banks;
 	rom->prg_rom[1] = rom->prg_banks + 0x4000 * (rom->prg_size - 1);
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
+    rom->chr_bank_mask = 0x1000;
+    rom->chr_bank_shift = 12;
 }
 string MMC1::name() {
 	return "MMC1";
 };
+
+MMC3::MMC3(Rom *rom) : Mapper(rom) {
+}
+void MMC3::prg_write(word addr, byte val) {
+    switch(addr&1) {
+    case 0:
+        if(addr < 0xa000) {
+            //bank select
+            bank_select = val & 7;
+            bank_config = (val & 0xc0) >> 6;
+        } else if(addr < 0xc000) {
+            //mirroring
+            if(!(val & 1)) {
+                rom->mirror = VERTICAL;
+            } else {
+                rom->mirror = HORIZONTAL;
+            }
+        } else if(addr < 0xe000) {
+            //irq latch
+            irq_latch = val;
+        } else {
+            //irq disable
+            irq_enabled = false;
+            //acknowledge waiting
+            irq_waiting = false;
+        }
+        break;
+    case 1:
+        if(addr < 0xa000) {
+            int v = val;
+            //set bank
+            switch(bank_select) {
+            case 0:
+                current_chr_banks[0] = v & 0xfe;
+                break;
+            case 1:
+                current_chr_banks[1] = v & 0xfe;
+                break;
+            case 2:
+                current_chr_banks[2] = v;
+                break;
+            case 3:
+                current_chr_banks[3] = v;
+                break;
+            case 4:
+                current_chr_banks[4] = v;
+                break;
+            case 5:
+                current_chr_banks[5] = v;
+                break;
+            case 6:
+                current_prg_banks[0] = v & (rom->prg_size*2-1);
+                break;
+            case 7:
+                current_prg_banks[1] = v & (rom->prg_size*2-1);
+                break;
+            }
+            update_prg_banks();
+            update_chr_banks();
+        } else if(addr < 0xc000) {
+            //prg ram
+        } else if(addr < 0xe000) {
+            //irq reload
+            irq_counter = 0;
+        } else {
+            //irq enable
+            irq_enabled = true;
+        }
+    }
+};
+void MMC3::update_prg_banks() {
+    if(!(bank_config & 1)) {
+        rom->prg_rom[0] = rom->prg_banks + 0x2000*current_prg_banks[0];
+        rom->prg_rom[1] = rom->prg_banks + 0x2000*current_prg_banks[1];
+        rom->prg_rom[2] = rom->prg_banks + 0x2000*(rom->prg_size*2-2);
+    } else {
+        rom->prg_rom[0] = rom->prg_banks + 0x2000*(rom->prg_size*2-2);
+        rom->prg_rom[1] = rom->prg_banks + 0x2000*current_prg_banks[1];
+        rom->prg_rom[2] = rom->prg_banks + 0x2000*current_prg_banks[2];
+    }
+}
+void MMC3::update_chr_banks() {
+    if(!(bank_config & 2)) {
+        //two four
+        rom->chr_rom[0] = rom->chr_banks + 0x400*current_chr_banks[0];
+        rom->chr_rom[1] = rom->chr_banks + 0x400*current_chr_banks[0]+0x400;
+        rom->chr_rom[2] = rom->chr_banks + 0x400*current_chr_banks[1];
+        rom->chr_rom[3] = rom->chr_banks + 0x400*current_chr_banks[1]+0x400;
+        rom->chr_rom[4] = rom->chr_banks + 0x400*current_chr_banks[2];
+        rom->chr_rom[5] = rom->chr_banks + 0x400*current_chr_banks[3];
+        rom->chr_rom[6] = rom->chr_banks + 0x400*current_chr_banks[4];
+        rom->chr_rom[7] = rom->chr_banks + 0x400*current_chr_banks[5];
+    } else {
+        //four two
+        rom->chr_rom[0] = rom->chr_banks + 0x400*current_chr_banks[2];
+        rom->chr_rom[1] = rom->chr_banks + 0x400*current_chr_banks[3];
+        rom->chr_rom[2] = rom->chr_banks + 0x400*current_chr_banks[4];
+        rom->chr_rom[3] = rom->chr_banks + 0x400*current_chr_banks[5];
+        rom->chr_rom[4] = rom->chr_banks + 0x400*current_chr_banks[0];
+        rom->chr_rom[5] = rom->chr_banks + 0x400*current_chr_banks[0]+0x400;
+        rom->chr_rom[6] = rom->chr_banks + 0x400*current_chr_banks[1];
+        rom->chr_rom[7] = rom->chr_banks + 0x400*current_chr_banks[1]+0x400;
+    }
+}
+void MMC3::update(Machine *m) {
+    if(!a12high && m->ppu->a12high) {
+        clock_counter();
+    }
+    a12high = m->ppu->a12high;
+    if(irq_waiting && irq_enabled)
+        m->request_irq();
+};
+
+void MMC3::clock_counter() {
+    if(irq_counter > 0) {
+        irq_counter--;
+    } else {
+        irq_counter = irq_latch;
+    }
+    if(irq_counter == 0 && irq_enabled) {
+        irq_waiting = true;
+    }
+}
+
+void MMC3::load() {
+    rom->prg_rom[3] = rom->prg_banks + 0x2000 * (rom->prg_size*2-1);
+    for(int i = 0; i < 6; i++) {
+        current_chr_banks[i] = i;
+    }
+    current_prg_banks[0] = 0;
+    current_prg_banks[1] = 1;
+    current_prg_banks[2] = 2;
+    update_chr_banks();
+    update_prg_banks();
+    rom->chr_bank_mask = 0xfc00;
+    rom->chr_bank_shift = 10;
+    rom->prg_bank_mask = 0x6000;
+    rom->prg_bank_shift = 13;
+}
+string MMC3::name() {
+	return "MMC3";
+};
+
 
 AXROM::AXROM(Rom *rom) : Mapper(rom) {
 }
@@ -164,7 +328,12 @@ void AXROM::load() {
 	rom->prg_rom[1] = rom->prg_banks + 0x4000;// * (prg_size - 1);
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
+    rom->chr_bank_mask = 0x1000;
+    rom->chr_bank_shift = 12;
 }
+void AXROM::update(Machine *m) {};
 string AXROM::name() {
 	return "AxROM";
 };

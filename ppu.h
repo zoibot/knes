@@ -42,7 +42,6 @@ private:
 	bool odd_frame;
 	int last_nmi;
 	int vbl_off;
-	bool a12high;
     //memory
     byte* mem;
     byte mem_buf;
@@ -81,6 +80,7 @@ public:
     word cyc;
     byte* obj_mem;
     word obj_addr;
+	bool a12high;
 	void dump_nts();
     void run();
 	void set_mirroring(NTMirroring mirror);

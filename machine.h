@@ -14,25 +14,20 @@
 #include "rom.h"
 #include "util.h"
 
-const sf::Key::Code keymap[8] = { 
-                  sf::Key::Z, //a
-                  sf::Key::X, //b
-                  sf::Key::S, //Select
-                  sf::Key::Return, //Start
-                  sf::Key::Up,
-                  sf::Key::Down,
-				  sf::Key::Left,
-                  sf::Key::Right,
+const sf::Keyboard::Key keymap[8] = { 
+                  sf::Keyboard::Z, //a
+                  sf::Keyboard::X, //b
+                  sf::Keyboard::S, //Select
+                  sf::Keyboard::Return, //Start
+                  sf::Keyboard::Up,
+                  sf::Keyboard::Down,
+				  sf::Keyboard::Left,
+                  sf::Keyboard::Right,
                 };
 
 class Machine {
     byte *mem;
-    //ppu
-	void sync_ppu(int cycles);
-    PPU *ppu;
     sf::RenderWindow wind;
-    //APU
-    APU *apu;
     //sound??
     //input
     byte read_input_state;
@@ -49,6 +44,11 @@ public:
 	Rom *rom;
 	//CPU
 	CPU *cpu;
+    //APU
+    APU *apu;
+    //ppu
+	void sync_ppu(int cycles);
+    PPU *ppu;
 
 	void reset();
     void run();

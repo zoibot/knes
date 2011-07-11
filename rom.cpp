@@ -43,6 +43,9 @@ Rom::Rom(istream& f, string fname) {
 	case 3:
 		mapper = new CNROM(this);
 		break;
+    case 4:
+        mapper = new MMC3(this);
+        break;
 	case 7:
 		mapper = new AXROM(this);
 		break;
