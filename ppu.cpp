@@ -323,6 +323,7 @@ void PPU::update_vert_scroll() {
 void PPU::new_scanline() {
 	vert_scroll = false;
 	horiz_scroll = false;
+	fine_x = xoff;
     while(bg_prefetch.size() > 2) {
         bg_prefetch.pop_front();
     }
@@ -422,6 +423,7 @@ void PPU::render_pixels(byte x, byte y, byte num) {
         fine_x++;
         fine_x &= 7;
         xoff++;
+		num--;
         if(!fine_x) {
             if(bg_prefetch.size() < 1) {
             } else {
@@ -429,7 +431,6 @@ void PPU::render_pixels(byte x, byte y, byte num) {
                 bg_prefetch.pop_front();
             }
         }
-        num--;
     }
 }
 
@@ -441,7 +442,7 @@ void PPU::draw_frame() {
     sf::Event event;
 	bool paused = false;
 	do {
-		while (wind->PollEvent(event)) {
+		while (wind->GetEvent(event)) {
 			if (event.Type == sf::Event::Closed) {
                 mach->save();
 				wind->Close();
@@ -517,6 +518,7 @@ void PPU::run() {
 				sl++;
                 if(bg_enabled) 
                     new_scanline();
+				break;
 			}
         } else if(sl < 240) {
             int todo = 0;
