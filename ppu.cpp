@@ -331,11 +331,15 @@ void PPU::new_scanline() {
 	vert_scroll = false;
 	horiz_scroll = false;
 	fine_x = xoff;
-    while(bg_prefetch.size() > 2) {
+    if(bg_prefetch.size() < 1) {
+        cout << "ran out of tiles" << endl;
+    } else {
+        while(bg_prefetch.size() > 2) {
+            bg_prefetch.pop_front();
+        }
+        cur_tile = bg_prefetch.front();
         bg_prefetch.pop_front();
     }
-    cur_tile = bg_prefetch.front();
-    bg_prefetch.pop_front();
     //sprites
     num_sprs = num_next_sprs;
     for(int i = 0; i < num_sprs; i++) {
@@ -491,10 +495,6 @@ void PPU::run() {
 		} else if(sl == -1) {
 			switch(cyc) {
 			case 0:
-	            if(last_vblank_end < last_vblank_start) {
-		            last_vblank_end = mach->cpu->cycle_count;
-		            //cout << (last_vblank_start - last_vblank_end) << endl;
-	            }
 				pstat &= ~(1 << 7);
 				pstat &= ~(1 << 6);
 				pstat &= ~(1 << 5);
@@ -508,6 +508,8 @@ void PPU::run() {
                 }
                 cycle_count += 36;
                 cyc += 36;
+                if(bg_enabled)
+                    get_mem(0x1000); //hack for MMC3
                 break;
 			case 340:
 				if(bg_enabled) {

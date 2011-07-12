@@ -246,7 +246,7 @@ void MMC3::update_prg_banks() {
     } else {
         rom->prg_rom[0] = rom->prg_banks + 0x2000*(rom->prg_size*2-2);
         rom->prg_rom[1] = rom->prg_banks + 0x2000*current_prg_banks[1];
-        rom->prg_rom[2] = rom->prg_banks + 0x2000*current_prg_banks[2];
+        rom->prg_rom[2] = rom->prg_banks + 0x2000*current_prg_banks[0];
     }
 }
 void MMC3::update_chr_banks() {

@@ -140,7 +140,7 @@ void Machine::sync_ppu(int cycles) {
 
 void Machine::run() {
     cpu->reset();
-    ofstream cout("LOG.TXT");
+    //ofstream cout("LOG.TXT");
 	cout << uppercase << setfill('0');
 	Instruction inst;
     //debug = true;
