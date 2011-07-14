@@ -1,0 +1,57 @@
+Speed
+Memory viewer and modification
+Quick save states
+Enter cheat/debug codes of various types (even for NSF)
+    Modify ROM value persistently
+    Modify RAM value persistently
+    Modify RAM value conditionally
+    Watchpoint of RAM
+    Breakpoint of program code
+Key configuration
+Joystick support
+Wii remote support
+Network support
+Load ROM from iNES file (or other formats)
+Emulate system with external cartridge
+Famicom Disk System
+Famicom Keyboard
+Zapper
+Connect any input device to any controller port (even if not normally 
+used on that port)
+NTSC/PAL switch
+Record (and play back) a file with changes to a range of memory 
+(including number of frames) with the range that the user can specify
+Write Forth codes for various purposes
+    Override an existing mapper or program a new mapper
+    Make a new input device emulation
+    Make a expansion device emulation
+    Write macros
+Emulate arcade system
+Quick reload same ROM file (in case you have made changes)
+View nametable, tiles, palettes
+Record which positions of memory (including specifyable conditions, such 
+as ROM banks) are used as instructions, operands to instructions, data, 
+jump targets
+Turn off individual audio channels
+Emulate stereo NES modification
+Turn off sprites/background individually
+Copy text from nametables (using translation table specified by user)
+Change aspect ratio
+Crop the view, to see how it would work on TV screens that do not 
+display the pictures on edges
+Literate programming (such as Enhanced CWEB, for example; or INWEB if 
+you prefer that one) to make the book of how the program works and all 
+of its features and so on
+License free-software/open-source
+Debugger
+Screen shot
+Single frame advance
+Paste Famicom keyboard input from clipboard
+Support no-sprite-limit
+RAM filter search (cheat code helper)
+Low-level PPU debugging details
+Software scaling (inhibit use of scaling interpolation causing blurry 
+pictures)
+In case of audio pass filter, allow disabling filters
+Single instruction advance
+Header editor 
