@@ -49,11 +49,13 @@ Rom::Rom(istream& f, string fname) {
 	case 7:
 		mapper = new AXROM(this);
 		break;
+	case 71:
+		mapper = new Camerica(this);
+		break;
 	default:
 		cout << "Unsupported Mapper" << endl;
         cout << int(mapper_num) << endl;
-        exit(1);
-		break;
+        return;
 	}
 	cout << "Using mapper: " << int(mapper_num) << " " << mapper->name() << endl;
     prg_ram_size = header[8];

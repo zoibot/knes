@@ -51,8 +51,9 @@ public:
     PPU *ppu;
 
 	void reset();
-    void run();
+    void run(int frames);
     void save();
+	sf::Image screenshot();
 
 	byte get_mem(word addr);
     void set_mem(word addr, byte val);

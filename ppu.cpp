@@ -447,6 +447,7 @@ void PPU::render_pixels(byte x, byte y, byte num) {
 
 void PPU::draw_frame() {
     sl = -2;
+	num_frames++;
 	sf::Sprite x(screen);
     wind->Draw(x);
     //process events

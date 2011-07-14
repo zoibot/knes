@@ -138,11 +138,12 @@ void Machine::sync_ppu(int cycles) {
 	ppu->run();
 }
 
-void Machine::run() {
+void Machine::run(int frames = 0) {
     cpu->reset();
     //ofstream cout("LOG.TXT");
 	cout << uppercase << setfill('0');
 	Instruction inst;
+	int cur_frames = ppu->num_frames;
     //debug = true;
     while(1) {
         try {
@@ -172,10 +173,18 @@ void Machine::run() {
 					break;
 				}
 			}
+			//check if it's time to return
+			if(frames && (ppu->num_frames - cur_frames >= frames)) {
+				return;
+			}
         } catch(...) {
             break;
         }
     }
+}
+
+sf::Image Machine::screenshot() {
+	return ppu->screen;
 }
 
 string Machine::dump_regs() {

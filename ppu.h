@@ -33,7 +33,6 @@ private:
 	bool debug_flag;
     Machine *mach;
     sf::RenderWindow *wind;
-    sf::Image screen;
 	sf::RenderWindow debug;
 	sf::Image debugi;
 	//cycles
@@ -72,8 +71,10 @@ private:
     void set_mirror(word from, word to, word size);
 	NTMirroring current_mirroring;
 public:
+	sf::Image screen;
 	int last_vblank_start;
 	int last_vblank_end;
+	int num_frames;
 	word vaddr, taddr;
     word next_taddr;
     int sl;
