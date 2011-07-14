@@ -299,7 +299,6 @@ void MMC3::load() {
     }
     current_prg_banks[0] = 0;
     current_prg_banks[1] = 1;
-    current_prg_banks[2] = 2;
     update_chr_banks();
     update_prg_banks();
     rom->chr_bank_mask = 0xfc00;
@@ -325,7 +324,7 @@ void AXROM::prg_write(word addr, byte val) {
 };
 void AXROM::load() {
 	rom->prg_rom[0] = rom->prg_banks;
-	rom->prg_rom[1] = rom->prg_banks + 0x4000;// * (prg_size - 1);
+	rom->prg_rom[1] = rom->prg_banks + 0x4000;
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
     rom->prg_bank_mask = 0x4000;
@@ -336,4 +335,38 @@ void AXROM::load() {
 void AXROM::update(Machine *m) {};
 string AXROM::name() {
 	return "AxROM";
+};
+
+Camerica::Camerica(Rom *rom) : Mapper(rom) {
+	this->rom = rom;
+}
+void Camerica::prg_write(word addr, byte val) {
+	if(addr < 0xc000) {
+	}
+	if(addr < 0xa000) {
+		/*if(val & 0x10) {
+			rom->mirror = SINGLE_LOWER;
+		} else {
+			rom->mirror = SINGLE_UPPER;
+		}*/
+	}
+	if(addr >= 0xc000) {
+		bank = val & (rom->prg_size-1);
+		rom->prg_rom[0] = rom->prg_banks + (0x4000 * bank);
+	}
+};
+void Camerica::load() {
+	rom->prg_rom[0] = rom->prg_banks;
+	rom->prg_rom[1] = rom->prg_banks + (rom->prg_size - 1) * 0x4000;
+	rom->chr_rom[0] = rom->chr_banks;
+	rom->chr_rom[1] = rom->chr_banks + 0x1000;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
+    rom->chr_bank_mask = 0x1000;
+    rom->chr_bank_shift = 12;
+	rom->mirror = FOUR_SCREEN;
+}
+void Camerica::update(Machine *m) {};
+string Camerica::name() {
+	return "Camerica";
 };

@@ -89,4 +89,14 @@ public:
     AXROM(Rom *rom);
 };
 
+class Camerica : public Mapper {
+public:
+    int bank;
+    void prg_write(word addr, byte val);
+    void load();
+    void update(Machine *m);
+    string name();
+    Camerica(Rom *rom);
+};
+
 #endif //MAPPER _H
