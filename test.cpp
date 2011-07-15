@@ -47,6 +47,7 @@ void test(char *testfile) {
 	getline(file, line);
 	Machine *m = load((char*)("test/"+line).c_str());
 	TestInputProvider *inp = new TestInputProvider();
+	//SFMLInputProvider *inp = new SFMLInputProvider();
 	m->set_input(inp);
 	while(!file.eof()) {
 		getline(file, line);
@@ -64,7 +65,7 @@ void test(char *testfile) {
 			sf::Image i = m->screenshot();
 			boost::crc_optimal<64, 0xFADEEAB39483FCD0> crc;
 			crc.process_bytes(i.GetPixelsPtr(), i.GetWidth() * i.GetHeight() * 4);
-			boost::int_fast64_t expected;
+			boost::uint_fast64_t expected;
 			iline >> hex >> expected;
 			string message;
 			iline >> message;
@@ -73,10 +74,11 @@ void test(char *testfile) {
 				pass();
 			} else {
 				fail();
+				stringstream checksum;
+				checksum << hex << crc.checksum();
+				i.SaveToFile(checksum.str() + ".png");
+				cout << "expected " << hex << expected << " got " << checksum.str() << endl;
 			}
-			stringstream checksum;
-			checksum << hex << crc.checksum();
-			i.SaveToFile(checksum.str() + ".png");
 		} else if(command == "press") {
 			char button;
 			int button_code;
@@ -111,9 +113,10 @@ void test(char *testfile) {
 				return;
 			}
 			inp->set_button(button_code, 1, true);
-			m->run(3);
+			m->run(2);
 			inp->set_button(button_code, 1, false);
 		} else if(command == "blargg_test") {
+			m->run(0);
 			if(m->rom->prg_ram[1] == 0xde && m->rom->prg_ram[2] == 0xb0) {//&& mem[0x6003] == 0x61) {
 				switch(m->rom->prg_ram[0]) {
 				case 0x80:
@@ -123,7 +126,7 @@ void test(char *testfile) {
 					//need reset
 					break;
 				case 0x0:
-					pass("");
+					pass();
 					break;
 				default:
 					fail((char*)(m->rom->prg_ram + 4));

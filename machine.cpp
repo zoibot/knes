@@ -99,6 +99,7 @@ Machine::Machine(Rom *rom) {
     //clock???
     mem = new byte[0x800];
     memset(mem, 0xff, 0x800);
+	cpu->reset();
 }
 
 void Machine::set_input(InputProvider *inp) {
@@ -143,7 +144,6 @@ void Machine::sync_ppu(int cycles) {
 }
 
 void Machine::run(int frames = 0) {
-    cpu->reset();
     //ofstream cout("LOG.TXT");
 	cout << uppercase << setfill('0');
 	Instruction inst;
@@ -173,12 +173,11 @@ void Machine::run(int frames = 0) {
 				default:
 					cout << "test done: " << endl;
 					cout << (char*)(rom->prg_ram + 4) << endl;
-                    exit(0);
-					break;
+                    return;
 				}
 			}
 			//check if it's time to return
-			if(frames && (ppu->num_frames - cur_frames >= frames)) {
+			if(frames && ((ppu->num_frames - cur_frames) >= frames)) {
 				return;
 			}
         } catch(...) {

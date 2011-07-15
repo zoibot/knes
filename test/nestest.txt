@@ -2,10 +2,9 @@ nestest.nes
 wait 5
 test_image 7564EF398779AF10 menu_display
 press T
-wait 20
-test_image 0 official_instructions
+wait 10
+test_image c54562b7b0dc56d0 official_instructions
 press S
-wait 2
 press T
-wait 20
-test_image 0 unofficial_instructions
+wait 10
+test_image 2379e64496ab070 unofficial_instructions

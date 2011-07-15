@@ -18,9 +18,11 @@ TestInputProvider::TestInputProvider() {
 }
 
 bool TestInputProvider::pressed(int button, int controller) {
-	return buttons[button + (8 * (controller-1))];
+	return buttons[button];
+	// + (8 * (controller-1))
 }
 
 void TestInputProvider::set_button(int button, int controller, bool state) {
-	buttons[button + (8 * (controller-1))] = state;
+	buttons[button] = state;
+	// + (8 * (controller-1))
 }
