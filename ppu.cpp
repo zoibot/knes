@@ -630,6 +630,11 @@ void PPU::set_mirroring(NTMirroring mirror) {
 	}
 }
 
+void PPU::log(string message, LogLevel level) {
+	stringstream x;
+	x << "sl: " << sl << " cyc: " << cyc << " vaddr: " << HEX4(vaddr) << " " << message;
+	Logger::get_logger("main")->log(x.str(), "ppu", level);
+}
 
 void PPU::dump_nts() {
 	debug.Create(sf::VideoMode(512, 480), "debug");

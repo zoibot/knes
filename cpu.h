@@ -3,6 +3,7 @@
 
 #include "util.h"
 #include "instruction.h"
+#include "log.h"
 
 //flags
 static const byte N = 1 << 7;
@@ -28,6 +29,8 @@ private:
     word pop2();
     void push(byte val);
     byte pop();
+
+	void log(string message, LogLevel level = lINFO);
 public:
 	CPU(Machine *m);
 	int pc;

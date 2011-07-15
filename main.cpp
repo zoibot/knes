@@ -14,6 +14,7 @@ namespace po = boost::program_options;
 #include "machine.h"
 #include "rom.h"
 #include "test.h"
+#include "log.h"
 
 Machine *load(char *romfile) {
 	ifstream romf(romfile, ifstream::binary | ifstream::in);

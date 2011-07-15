@@ -7,6 +7,7 @@
 #include <SFML/Graphics.hpp>
 
 #include "util.h"
+#include "log.h"
 
 class Machine;
 
@@ -69,6 +70,7 @@ private:
     void prefetch_bytes(int start, int cycles);
     byte get_mem_mirrored(word addr);
     void set_mirror(word from, word to, word size);
+	void log(string message, LogLevel level = lINFO);
 	NTMirroring current_mirroring;
 public:
 	sf::Image screen;

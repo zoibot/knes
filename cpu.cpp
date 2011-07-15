@@ -1,5 +1,6 @@
 #include "cpu.h"
 #include "machine.h"
+#include "log.h"
 
 CPU::CPU(Machine *m) {
 	this->m = m;
@@ -8,6 +9,13 @@ CPU::CPU(Machine *m) {
 	cycle_count = 0;
 	prev_cycles = 0;
 }
+
+void CPU::log(string message, LogLevel level) {
+	stringstream x;
+	x << "cycles: " << cycle_count << " " << message;
+	Logger::get_logger("main")->log(x.str(), "cpu", level);
+}
+
 void CPU::set_flag(byte flag, bool val) {
     if(val) {
         p |= flag;
