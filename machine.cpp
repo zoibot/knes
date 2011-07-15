@@ -58,7 +58,7 @@ void Machine::set_mem(word addr, byte val) {
         case 0x4016:
             if(val & 1) {
                 for(int i = 0; i < 8; i++) {
-                    keys[i] = sf::Keyboard::IsKeyPressed(keymap[i]);
+                    keys[i] = inp->pressed(i, 1);
                 }
             }
             read_input_state = 0;
@@ -99,6 +99,10 @@ Machine::Machine(Rom *rom) {
     //clock???
     mem = new byte[0x800];
     memset(mem, 0xff, 0x800);
+}
+
+void Machine::set_input(InputProvider *inp) {
+	this->inp = inp;
 }
 
 void Machine::request_nmi() {

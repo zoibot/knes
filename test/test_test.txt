@@ -1,3 +1,0 @@
-nestest.nes
-wait 100
-test_image 123

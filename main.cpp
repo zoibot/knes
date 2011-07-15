@@ -24,10 +24,11 @@ Machine *load(char *romfile) {
 void run(char *romfile, bool debug = false) {
 	Machine *mach = load(romfile);
 	mach->debug = debug;
+	mach->set_input(new SFMLInputProvider());
     mach->run(0);
 }
 
-//TODO better error checking
+//TODO better error checking, "test/", (char*) casts
 int main(int argc, char *argv[]) {
     // Declare the supported options.
 	po::options_description desc("Allowed options");
@@ -69,6 +70,7 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
     bool debug = argc > 2;
+	//default run rom
 	run((char*)(vm["rom"].as<string>()).c_str(), debug);
     cin.get();
     return 0;

@@ -13,17 +13,7 @@
 #include "instruction.h"
 #include "rom.h"
 #include "util.h"
-
-const sf::Keyboard::Key keymap[8] = { 
-                  sf::Keyboard::Z, //a
-                  sf::Keyboard::X, //b
-                  sf::Keyboard::S, //Select
-                  sf::Keyboard::Return, //Start
-                  sf::Keyboard::Up,
-                  sf::Keyboard::Down,
-				  sf::Keyboard::Left,
-                  sf::Keyboard::Right,
-                };
+#include "input.h"
 
 class Machine {
     byte *mem;
@@ -32,15 +22,13 @@ class Machine {
     //input
     byte read_input_state;
     bool keys[8];
-
+	InputProvider *inp;
 
     string dump_regs();
 
 public:
     Machine(Rom *rom);
 	bool debug;
-	int testeroo;
-
 	Rom *rom;
 	//CPU
 	CPU *cpu;
@@ -52,6 +40,7 @@ public:
 
 	void reset();
     void run(int frames);
+	void set_input(InputProvider *inp);
     void save();
 	sf::Image screenshot();
 
