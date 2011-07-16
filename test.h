@@ -5,8 +5,8 @@
 const int CONSOLE_GREEN = 10;
 const int CONSOLE_RED = 12;
 #else
-const int CONSOLE_GREEN = 31;
-const int CONSOLE_RED = 32;
+const int CONSOLE_GREEN = 32;
+const int CONSOLE_RED = 31;
 #endif
 
 void run(char *romfile, bool debug);

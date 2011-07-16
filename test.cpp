@@ -12,13 +12,15 @@
 
 using namespace std;
 
-void print_colored(char* s, int color) {
+void print_colored(std::string s, int color) {
 #ifdef WIN32
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 	cout << s;
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7 /*gray*/);
 #else
-	cout << s << endl;
+    cout << "\e[" << color << "m";
+	cout << s;
+    cout << "\e[" << 0 << "m";
 #endif
 }
 
@@ -47,10 +49,10 @@ void test(char *testfile) {
 	getline(file, line);
 	Machine *m = load((char*)("test/"+line).c_str());
 	TestInputProvider *inp = new TestInputProvider();
-	//SFMLInputProvider *inp = new SFMLInputProvider();
 	m->set_input(inp);
-	while(!file.eof()) {
+	while(true) {
 		getline(file, line);
+        if(file.eof()) break;
 		iline.clear();
 		iline.str(line);
 		iline >> command;
@@ -141,8 +143,9 @@ void test(char *testfile) {
 void test_list(char *testlistfile) {
 	ifstream file(testlistfile);
 	string line;
-	while(!file.eof()) {
+	while(true) {
 		getline(file, line);
+        if(file.eof()) break;
 		test((char*)("test/"+line).c_str());
 	}
 }

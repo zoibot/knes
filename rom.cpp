@@ -21,7 +21,6 @@ Rom::Rom(istream& f, string fname) {
     chr_size = header[5];
     flags6 = header[6];
     flags7 = header[7];
-    cout << (flags7 &0xf) << endl;
     if((flags7 & 0xf) == 0x8)
         cout << "ines 2" << endl;
 	if(flags6 & 1) {

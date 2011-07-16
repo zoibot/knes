@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -pg -Wall -O2
-OBJECTS = main.o cpu.o ppu.o machine.o rom.o mapper.o apu.o instruction.o
-LIBS = -lsfml-window -lsfml-system -lsfml-graphics -lsfml-audio
+OBJECTS = main.o cpu.o ppu.o machine.o rom.o mapper.o apu.o instruction.o input.o test.o
+LIBS = -lsfml-window -lsfml-system -lsfml-graphics -lsfml-audio -lboost_program_options
 
 default: nes
 
