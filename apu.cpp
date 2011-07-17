@@ -1,6 +1,7 @@
 #include "apu.h"
 #include "machine.h"
-//sound queue??
+
+//TODO sound queue
 
 void Pulse::write_register(byte num, byte val) {
     switch(num % 4) {
@@ -122,7 +123,7 @@ void APU::write_register(byte num, byte val) {
             frame_irq = false;
         } else {
 			frame_irq = true;
-		}
+        }
         break;
     default:
         cout << "weird APU register " << num << endl;

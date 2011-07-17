@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	if(vm.count("test")) {
+        //run a set of tests listed on the command line
 		vector<string> tests = vm["test"].as< vector<string> >();
 		for(vector<string>::iterator i = tests.begin(); i != tests.end(); i++) {
 			test((char*)(*i).c_str());
@@ -66,6 +67,7 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	if(vm.count("test-list")) {
+        //run a set of tests listed in a file
 		test_list((char*)("test/"+vm["test-list"].as<string>()).c_str());
 		cin.get();
 		return 0;

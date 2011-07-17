@@ -16,40 +16,56 @@ static const byte C = 1 << 0;
 
 class CPU {
 private:
+    //machine that this CPU is a part of
 	Machine *m;
-    void set_nz(byte val);
+    //registers
+	int pc;
+    byte a, s, p;
+	byte x, y;
+    //cycle timing information
+	int cycle_count, prev_cycles;
 
+    //instruction helper functions
 	void branch(bool cond, Instruction &inst);
 	void compare(byte a, byte b);
 
+    //memory accessing functions
 	byte get_mem(word addr);
 	void set_mem(word addr, byte value);
+	byte next_byte();
+    word next_word();
 
+    //stack helpers
     void push2(word val);
     word pop2();
     void push(byte val);
     byte pop();
 
+    //flag helpers
+    void set_nz(byte val);
+	void set_flag(byte flag, bool val);
+
 	void log(string message, LogLevel level = lINFO);
 public:
 	CPU(Machine *m);
-	int pc;
-	void set_flag(byte flag, bool val);
+    //accessors
     bool get_flag(byte flag);
-    byte a, s, p;
-	byte x, y;
-	int cycle_count, prev_cycles;
+    int get_cycle_count();
+    void add_cycles(int c);
+    word get_pc();
+    void set_pc(word addr);
 	
+    //interrupts
+	void reset();
 	void irq();
 	void nmi();
 
+    //running
 	Instruction next_instruction();
 	int execute_inst(Instruction inst);
-	void reset();
 
-	byte next_byte();
-    word next_word();
-
+    //debugging
+    string dump_regs();
 };
 
-#endif //MACHINE_H
+#endif //CPU_H

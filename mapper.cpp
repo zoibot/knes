@@ -108,7 +108,6 @@ void MMC1::prg_write(word addr, byte val) {
 			}
 			control = loadr;
 		} else if(addr < 0xc000) {
-			cout << "switching char bank" << endl;
 			//chr bank 0
 			if(control & (1<<5)) {
 				//4kb mode
@@ -118,7 +117,6 @@ void MMC1::prg_write(word addr, byte val) {
 				rom->chr_rom[1] = rom->chr_banks + 0x1000 * (loadr | 1);
 			}
 		} else if(addr < 0xe000) {
-			cout << "switching char bank" << endl;
 			//chr bank 1
 			if(control & (1<<5)) {
 				//4kb mode

@@ -68,7 +68,7 @@ void Machine::set_mem(word addr, byte val) {
                 byte addr = v + ppu->obj_addr;
                 ppu->obj_mem[addr] = mem[(val << 8)+v];
             }
-            cpu->cycle_count += 513;
+            cpu->add_cycles(513);
             break;
         default:
             apu->write_register(addr - 0x4000, val);
@@ -139,7 +139,7 @@ void Machine::run_interrupts() {
 }
 
 void Machine::sync_ppu(int cycles) {
-	cpu->cycle_count += cycles;
+	cpu->add_cycles(cycles);
 	ppu->run();
 }
 
@@ -152,7 +152,7 @@ void Machine::run(int frames = 0) {
     while(1) {
         try {
             if(debug)
-                cout << HEX4(cpu->pc) << "  ";
+                cout << HEX4(cpu->get_pc()) << "  ";
             inst = cpu->next_instruction();
             if(debug)
                 cout << inst << dump_regs() << endl; 
@@ -192,14 +192,8 @@ sf::Image Machine::screenshot() {
 
 string Machine::dump_regs() {
     stringstream out;
-    out << hex << uppercase;
-    out << "A:" << HEX2(cpu->a);
-    out << " X:" << HEX2(cpu->x);
-    out << " Y:" << HEX2(cpu->y);
-    out << " P:" << HEX2(cpu->p);
-    out << " SP:" << HEX2(cpu->s);
+    out << cpu->dump_regs();
 	out << dec;
-    //out << " CC:" << cpu->cycle_count;
     out << "  CYC: " << ppu->cyc;
     out << " SL: " << ppu->sl;
 	out << " VADDR: " << HEX4(ppu->vaddr);

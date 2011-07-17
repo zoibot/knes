@@ -2,33 +2,24 @@
 #include "machine.h"
 #include "log.h"
 
-CPU::CPU(Machine *m) {
-	this->m = m;
-	a = x = y = s = 0;
-	p = 0x24;
-	cycle_count = 0;
-	prev_cycles = 0;
-}
-
-void CPU::log(string message, LogLevel level) {
-	stringstream x;
-	x << "cycles: " << cycle_count << " " << message;
-	Logger::get_logger("main")->log(x.str(), "cpu", level);
-}
-
-void CPU::set_flag(byte flag, bool val) {
-    if(val) {
-        p |= flag;
-    } else {
-        p &= ~flag;
+void CPU::branch(bool cond, Instruction &inst) {
+    if(cond) {
+		get_mem(pc);
+        inst.extra_cycles += 1;
+        if ((inst.addr & 0xff00) != (pc & 0xff00)) {
+			get_mem((inst.addr & 0xff) | (pc & 0xff00));
+            inst.extra_cycles += 1;
+        }
+        pc = inst.addr;
     }
 }
-bool CPU::get_flag(byte flag) {
-    return flag & p;
-}
-void CPU::set_nz(byte val) {
-    set_flag(Z, val == 0);
-    set_flag(N, val & 0x80);
+
+void CPU::compare(byte a, byte b) {
+    char sa = a;
+    char sb = b;
+    set_flag(N, (sa-sb) & (1 << 7));
+    set_flag(Z, sa == sb);
+    set_flag(C, a >= b);
 }
 
 byte CPU::get_mem(word addr) {
@@ -49,29 +40,6 @@ word CPU::next_word() {
     return next_byte() | (next_byte() << 8);
 }
 
-void CPU::nmi() {
-    push2(pc);
-    push(p);
-	set_flag(I, true);
-    pc = get_mem(0xfffa) + (get_mem(0xfffb)<<8);
-}
-
-void CPU::irq() {
-	push2(pc);
-    push(p);
-	set_flag(I, true);
-    pc = get_mem(0xfffe) + (get_mem(0xffff)<<8);
-}
-
-void CPU::reset() {
-    a = x = y = 0;
-    p = 0x24;
-    s -= 3;
-    s &= 0xff;
-    pc = get_mem(0xfffc) + (get_mem(0xfffd) << 8);
-    cycle_count = 0;
-}
-
 void CPU::push2(word val) {
     s -= 2;
     word ss = 0x0100;
@@ -89,24 +57,73 @@ byte CPU::pop() {
     return get_mem(++s | 0x100);
 }
 
-void CPU::branch(bool cond, Instruction &inst) {
-    if(cond) {
-		get_mem(pc);
-        inst.extra_cycles += 1;
-        if ((inst.addr & 0xff00) != (pc & 0xff00)) {
-			get_mem((inst.addr & 0xff) | (pc & 0xff00));
-            inst.extra_cycles += 1;
-        }
-        pc = inst.addr;
+void CPU::set_nz(byte val) {
+    set_flag(Z, val == 0);
+    set_flag(N, val & 0x80);
+}
+void CPU::set_flag(byte flag, bool val) {
+    if(val) {
+        p |= flag;
+    } else {
+        p &= ~flag;
     }
 }
 
-void CPU::compare(byte a, byte b) {
-    char sa = a;
-    char sb = b;
-    set_flag(N, (sa-sb) & (1 << 7));
-    set_flag(Z, sa == sb);
-    set_flag(C, a >= b);
+void CPU::log(string message, LogLevel level) {
+	stringstream x;
+	x << "cycles: " << cycle_count << " " << message;
+	Logger::get_logger("main")->log(x.str(), "cpu", level);
+}
+
+CPU::CPU(Machine *m) {
+	this->m = m;
+	a = x = y = s = 0;
+	p = 0x24;
+	cycle_count = 0;
+	prev_cycles = 0;
+}
+
+bool CPU::get_flag(byte flag) {
+    return flag & p;
+}
+
+int CPU::get_cycle_count() {
+    return cycle_count;
+}
+
+void CPU::add_cycles(int c) {
+    cycle_count += c;
+}
+
+word CPU::get_pc() {
+    return pc;
+}
+
+void CPU::set_pc(word addr) {
+    pc = addr;
+}
+
+void CPU::reset() {
+    a = x = y = 0;
+    p = 0x24;
+    s -= 3;
+    s &= 0xff;
+    pc = get_mem(0xfffc) + (get_mem(0xfffd) << 8);
+    cycle_count = 0;
+}
+
+void CPU::irq() {
+	push2(pc);
+    push(p);
+	set_flag(I, true);
+    pc = get_mem(0xfffe) + (get_mem(0xffff)<<8);
+}
+
+void CPU::nmi() {
+    push2(pc);
+    push(p);
+	set_flag(I, true);
+    pc = get_mem(0xfffa) + (get_mem(0xfffb)<<8);
 }
 
 int CPU::execute_inst(Instruction inst) {
@@ -530,4 +547,10 @@ int CPU::execute_inst(Instruction inst) {
 	prev_cycles = cycle_count;
 	//cycle_count += inst.op.cycles + inst.extra_cycles;
 	return inst_cycles;
+}
+
+string CPU::dump_regs() {
+    stringstream out;
+    out << "A: " << a;
+    return out.str();
 }

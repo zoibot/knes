@@ -31,7 +31,6 @@ struct Tile {
 
 class PPU {
 private:
-	bool debug_flag;
     Machine *mach;
     sf::RenderWindow *wind;
 	sf::RenderWindow debug;

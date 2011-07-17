@@ -15,7 +15,6 @@ PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
     obj_addr = 0;
     mem = new byte[0x4000];
     obj_mem = new byte[0x100];
-    debug_flag = false;
     cycle_count = 0;
 	odd_frame = false;
 	last_nmi = 0;
@@ -50,7 +49,7 @@ byte PPU::read_register(byte num) {
         ret = pstat;
         pstat &= ~(1 << 7);
         latch = false;
-		cycles = mach->cpu->cycle_count * 3;
+		cycles = mach->cpu->get_cycle_count() * 3;
 		if(cycles - last_nmi < 3) {
 			mach->suppress_nmi();
 			if(cycles - last_nmi == 0) {
@@ -86,7 +85,7 @@ void PPU::write_register(byte num, byte val) {
     switch(num) {
     case 0:
         pctrl = val;
-        cycles = mach->cpu->cycle_count * 3;
+        cycles = mach->cpu->get_cycle_count() * 3;
         if(pctrl & (1<<7)) {
             if(((pstat & (1<<7)) || (cycles - vbl_off <= 2)) && !nmi_occurred) {
                 mach->request_nmi();
@@ -364,7 +363,7 @@ void PPU::new_scanline() {
 }
 
 void PPU::do_vblank(bool rendering_enabled) {
-    int cycles = mach->cpu->cycle_count * 3 - cycle_count;
+    int cycles = mach->cpu->get_cycle_count() * 3 - cycle_count;
     if(341 - cyc > cycles) {
         cyc += cycles;
         cycle_count += cycles;
@@ -427,7 +426,6 @@ void PPU::render_pixels(byte x, byte y, byte num) {
                 }
             }
         }
-		debug_flag = false;
         int color = colors[get_mem(coli)];
         screen.SetPixel(xoff, y, 
             sf::Color((color & 0xff0000)>>16, (color & 0x00ff00) >> 8, color & 0x0000ff));
@@ -489,8 +487,8 @@ void PPU::run() {
     bool bg_enabled = pmask & (1 << 3);
     bool sprite_enabled = pmask & (1 << 4);
     bool rendering_enabled = bg_enabled || sprite_enabled;
-    while(cycle_count < mach->cpu->cycle_count * 3) {
-        int cycles = mach->cpu->cycle_count * 3 - cycle_count;
+    while(cycle_count < mach->cpu->get_cycle_count() * 3) {
+        int cycles = mach->cpu->get_cycle_count() * 3 - cycle_count;
         if(sl == -2) {
             do_vblank(rendering_enabled);
 		} else if(sl == -1) {
@@ -562,7 +560,7 @@ void PPU::run() {
                 sl += 1;
                 pstat |= (1 << 7);
 				last_nmi = cycle_count;
-		        last_vblank_start = mach->cpu->cycle_count;
+		        last_vblank_start = mach->cpu->get_cycle_count();
                 if(pctrl & (1 << 7)) {
                     mach->request_nmi();
 					nmi_occurred = true;

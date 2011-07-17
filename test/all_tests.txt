@@ -1,2 +1,4 @@
 nestest.txt
+instr_test.txt
 ppu_vbl_nmi.txt
+cpu_interrupts.txt

@@ -20,6 +20,9 @@ void Logger::log(string message, string category, LogLevel level) {
 	switch(level) {
 	case lERROR:
 		out << "ERROR ";
+        break;
+    default:
+        break;
 	}
 	out << "[" << category << "] " << message << endl;
 }
