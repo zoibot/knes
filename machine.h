@@ -17,18 +17,16 @@
 
 class Machine {
     byte *mem;
+    //window
     sf::RenderWindow wind;
-    //sound??
     //input
     byte read_input_state;
     bool keys[8];
 	InputProvider *inp;
-
+    //debug
     string dump_regs();
-
 public:
     Machine(Rom *rom);
-	bool debug;
 	Rom *rom;
 	//CPU
 	CPU *cpu;

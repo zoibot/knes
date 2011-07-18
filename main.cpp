@@ -22,9 +22,8 @@ Machine *load(char *romfile) {
     return new Machine(new Rom(romf, string(romfile)));
 }
 
-void run(char *romfile, bool debug = false) {
+void run(char *romfile) {
 	Machine *mach = load(romfile);
-	mach->debug = debug;
 	mach->set_input(new SFMLInputProvider());
     mach->run(0);
 }
@@ -35,7 +34,6 @@ int main(int argc, char *argv[]) {
 	po::options_description desc("Allowed options");
 	desc.add_options()
     ("help", "produce help message")
-    ("debug", po::value<int>(), "set debug flag")
 	("test", po::value< vector<string> >(), "run a single test file")
 	("test-list", po::value<string>(), "run a sequence of tests")
 	("rom", po::value<string>(), "input rom")
@@ -72,9 +70,8 @@ int main(int argc, char *argv[]) {
 		cin.get();
 		return 0;
 	}
-    bool debug = argc > 2;
 	//default run rom
-	run((char*)(vm["rom"].as<string>()).c_str(), debug);
+	run((char*)(vm["rom"].as<string>()).c_str());
     cin.get();
     return 0;
 }

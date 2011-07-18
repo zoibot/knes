@@ -1,6 +1,9 @@
+fix MMC3 scanline timing
 Speed
 Memory viewer and modification
 Quick save states
+    -stuff to save: memory, cpu regs/flags, mapper state, PPU mem
+    -save on frame boundary to simplify scanlines etc
 Enter cheat/debug codes of various types (even for NSF)
     Modify ROM value persistently
     Modify RAM value persistently
@@ -11,7 +14,7 @@ Key configuration
 Joystick support
 Wii remote support
 Network support
-Load ROM from iNES file (or other formats)
+*Load ROM from iNES file (or other formats)
 Emulate system with external cartridge
 Famicom Disk System
 Famicom Keyboard

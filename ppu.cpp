@@ -471,12 +471,14 @@ void PPU::draw_frame() {
 							cout << (int)s->y << endl;
 						}
 					}
-				} else if(event.Key.Code == sf::Keyboard::D) {
-					mach->debug = false;
 				} else if(event.Key.Code == sf::Keyboard::Q) {
 					//ZOOOM
 					wind->SetSize(1024, 960);
-				}
+				} else if(event.Key.Code == sf::Keyboard::F) {
+                    stringstream fps;
+                    fps << "fps: " << 1000.0f/float(wind->GetFrameTime());
+                    log(fps.str());
+                }
 			}
 		}
 	} while (paused);

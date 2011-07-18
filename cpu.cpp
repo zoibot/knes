@@ -2,18 +2,19 @@
 #include "machine.h"
 #include "log.h"
 
+//branch on cond to the address in inst
 void CPU::branch(bool cond, Instruction &inst) {
     if(cond) {
 		get_mem(pc);
-        inst.extra_cycles += 1;
         if ((inst.addr & 0xff00) != (pc & 0xff00)) {
+            //dummy read if the branch crosses a page
 			get_mem((inst.addr & 0xff) | (pc & 0xff00));
-            inst.extra_cycles += 1;
         }
         pc = inst.addr;
     }
 }
 
+//set flags based on comparison between a and b
 void CPU::compare(byte a, byte b) {
     char sa = a;
     char sb = b;
@@ -22,17 +23,20 @@ void CPU::compare(byte a, byte b) {
     set_flag(C, a >= b);
 }
 
+//get mem from machine and count cycle
 byte CPU::get_mem(word addr) {
 	byte v = m->get_mem(addr);
 	cycle_count++;
     return v;
 }
 
+//set mem on machine and count cycle
 void CPU::set_mem(word addr, byte val) {
 	cycle_count++;
 	m->set_mem(addr, val);
 }
 
+//next_byte/word for fetching instructions
 byte CPU::next_byte() {
     return get_mem(pc++);
 }
@@ -40,19 +44,23 @@ word CPU::next_word() {
     return next_byte() | (next_byte() << 8);
 }
 
+//push a word onto the stack and update the stack pointer
 void CPU::push2(word val) {
     s -= 2;
     word ss = 0x0100;
     set_mem(ss | (s + 1), val & 0xff);
     set_mem(ss | (s + 2), val >> 8);
 }
+//pop a word off the stack and update the stack pointer
 word CPU::pop2() {
     s += 2;
     return get_mem(((s-1) & 0xff) | 0x100) + (get_mem(s | 0x100) << 8);
 }
+//push a byte onto the stack and update the stack pointer
 void CPU::push(byte val) {
     set_mem(s-- | 0x100, val);
 }
+//pop a byte off the stack and update the stack pointer
 byte CPU::pop() {
     return get_mem(++s | 0x100);
 }

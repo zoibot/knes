@@ -84,10 +84,9 @@ void Machine::set_mem(word addr, byte val) {
 
 Machine::Machine(Rom *rom) {
     this->rom = rom;
-	debug = false;
     //Display
     wind.Create(sf::VideoMode(256, 240), "asdfNES", sf::Style::Close);
-    //wind.SetFramerateLimit(60);// what is the right limit??
+    wind.SetFramerateLimit(0);// what is the right limit??
     wind.EnableVerticalSync(false);
     //print surface bits
     cout << "Depth Bits: " << wind.GetSettings().DepthBits << endl;
@@ -148,21 +147,16 @@ void Machine::run(int frames = 0) {
 	cout << uppercase << setfill('0');
 	Instruction inst;
 	int cur_frames = ppu->num_frames;
-    //debug = true;
     while(1) {
         try {
-            if(debug)
-                cout << HEX4(cpu->get_pc()) << "  ";
             inst = cpu->next_instruction();
-            if(debug)
-                cout << inst << dump_regs() << endl; 
             int cycles = cpu->execute_inst(inst);
 			ppu->run();
 			apu->update(cycles);
 			rom->mapper->update(this);
 			run_interrupts();
 			//special handling for blargg tests
-			if(rom->prg_ram[1] == 0xde && rom->prg_ram[2] == 0xb0) {//&& mem[0x6003] == 0x61) {
+			if(rom->prg_ram[1] == 0xde && rom->prg_ram[2] == 0xb0) {
 				switch(rom->prg_ram[0]) {
 				case 0x80:
 					//running
