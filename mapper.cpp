@@ -76,6 +76,7 @@ MMC1::MMC1(Rom *rom) : Mapper(rom) {
 	loadr = 0;
 	shift = 0;
 	prg_bank = 0;
+    prg_bank_offset = 0;
 }
 void MMC1::prg_write(word addr, byte val) {
 	loadr |= (val & 1) << shift;
@@ -109,24 +110,34 @@ void MMC1::prg_write(word addr, byte val) {
 			control = loadr;
 		} else if(addr < 0xc000) {
 			//chr bank 0
-			if(control & (1<<5)) {
+			if(control & (1<<4)) {
 				//4kb mode
+                loadr = loadr & (rom->chr_size - 1);
 				rom->chr_rom[0] = rom->chr_banks + 0x1000 * loadr;
 			} else {
-				rom->chr_rom[0] = rom->chr_banks + 0x1000 * (loadr & 0x1e);
-				rom->chr_rom[1] = rom->chr_banks + 0x1000 * (loadr | 1);
+                if(rom->chr_size == 0 && rom->prg_size == 32) {
+                    //SUROM
+                    prg_bank_offset = loadr & 0x10;
+                    prg_ram_bank = ((loadr & 0xc) >> 2);
+                    update_prg_bank();
+                }
+                if(rom->chr_size != 0) {
+				    rom->chr_rom[0] = rom->chr_banks + 0x1000 * (loadr & 0x1e);
+				    rom->chr_rom[1] = rom->chr_banks + 0x1000 * (loadr | 1);
+                }
 			}
 		} else if(addr < 0xe000) {
 			//chr bank 1
-			if(control & (1<<5)) {
-				//4kb mode
+			if(control & (1<<4)) {
+				//4kb mode  
+                loadr = loadr & (rom->chr_size - 1);
 				rom->chr_rom[1] = rom->chr_banks + 0x1000 * loadr;
 			} else {
 				//8kb ignore
 			}
 		} else {
 			//prg bank
-			prg_bank = loadr;
+			prg_bank = loadr & min((rom->prg_size - 1), 0xf);
 			update_prg_bank();
 		}
 		shift = 0;
@@ -134,20 +145,20 @@ void MMC1::prg_write(word addr, byte val) {
 	}
 };
 void MMC1::update_prg_bank() {
+    byte pb = prg_bank + prg_bank_offset;
 	switch(control & 0xc) {
-		case 0:
-		case 4:
-			cout << (prg_bank & 0xe) << " " << ((prg_bank & 0xe) | 1) << endl;
-			rom->prg_rom[0] = rom->prg_banks + 0x4000 * (prg_bank & 0xe);
-			rom->prg_rom[1] = rom->prg_banks + 0x4000 * ((prg_bank & 0xe) | 1);
+		case 0x0:
+		case 0x4:
+			rom->prg_rom[0] = rom->prg_banks + 0x4000 * (pb & 0x1e);
+			rom->prg_rom[1] = rom->prg_banks + 0x4000 * (pb | 1);
 			break;
 		case 0x8:
-			rom->prg_rom[0] = rom->prg_banks;
-			rom->prg_rom[1] = rom->prg_banks + 0x4000 * prg_bank;
+			rom->prg_rom[0] = rom->prg_banks + 0x4000 * prg_bank_offset;
+			rom->prg_rom[1] = rom->prg_banks + 0x4000 * pb;
 			break;
 		case 0xc:
-			rom->prg_rom[0] = rom->prg_banks + 0x4000 * prg_bank;
-			rom->prg_rom[1] = rom->prg_banks + 0x4000 * (rom->prg_size - 1);
+			rom->prg_rom[0] = rom->prg_banks + 0x4000 * pb;
+			rom->prg_rom[1] = rom->prg_banks + 0x4000 * (prg_bank_offset + min((rom->prg_size - 1), 0xf));
 			break;
 	}
 }
@@ -158,16 +169,17 @@ void MMC1::load() {
 	rom->prg_rom[1] = rom->prg_banks + 0x4000 * (rom->prg_size - 1);
 	rom->chr_rom[0] = rom->chr_banks;
 	rom->chr_rom[1] = rom->chr_banks + 0x1000;
-    rom->prg_bank_mask = 0x4000;
-    rom->prg_bank_shift = 14;
     rom->chr_bank_mask = 0x1000;
     rom->chr_bank_shift = 12;
+    rom->prg_bank_mask = 0x4000;
+    rom->prg_bank_shift = 14;
 }
 string MMC1::name() {
 	return "MMC1";
 };
 
 MMC3::MMC3(Rom *rom) : Mapper(rom) {
+    last_irq_counter = 0;
 }
 void MMC3::prg_write(word addr, byte val) {
     switch(addr&1) {
@@ -271,12 +283,15 @@ void MMC3::update_chr_banks() {
     }
 }
 void MMC3::update(Machine *m) {
-    if(!a12high && m->ppu->a12high) {
+    if(!a12high && m->ppu->a12high && !last_irq_counter) {
         clock_counter();
+        last_irq_counter = 12;
     }
     a12high = m->ppu->a12high;
     if(irq_waiting && irq_enabled)
         m->request_irq();
+    if(last_irq_counter)
+        last_irq_counter--;
 };
 
 void MMC3::clock_counter() {

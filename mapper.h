@@ -6,6 +6,12 @@
 struct Rom;
 class Machine;
 
+struct mapper_state {
+    byte prg_banks[128];
+    byte chr_banks[128];
+    byte registers[128];
+};
+
 //abstract Mapper class
 class Mapper {
 public:
@@ -13,6 +19,7 @@ public:
     virtual void prg_write(word addr, byte val) = 0;
     virtual void load() = 0;
     virtual void update(Machine *m) = 0;
+    //TODO virtual mapper_state save_state() = 0;
     virtual string name() = 0;
     Mapper(Rom *rom);
 };
@@ -50,6 +57,8 @@ class MMC1 : public Mapper {
     byte control;
     byte shift;
     byte prg_bank;
+    byte prg_bank_offset;
+    byte prg_ram_bank;
     void update_prg_bank();
 public:
     void prg_write(word addr, byte val);
@@ -63,6 +72,7 @@ class MMC3 : public Mapper {
     byte bank_select;
     int current_chr_banks[6];
     int current_prg_banks[3];
+    byte last_irq_counter;
     byte bank_config;
     byte irq_latch;
     bool irq_enabled;

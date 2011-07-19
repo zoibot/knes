@@ -79,7 +79,7 @@ void CPU::set_flag(byte flag, bool val) {
 
 void CPU::log(string message, LogLevel level) {
 	stringstream x;
-	x << "cycles: " << cycle_count << " " << message;
+	x <</*"cycles: " << cycle_count << " " <<*/ message;
 	Logger::get_logger("main")->log(x.str(), "cpu", level);
 }
 
@@ -135,6 +135,9 @@ void CPU::nmi() {
 }
 
 int CPU::execute_inst(Instruction inst) {
+    //stringstream inststr;
+    //inststr << HEX4(pc) << " " << inst << dump_regs();
+    //log(inststr.str());
     byte t;
     byte a7, m7, r7;
     word result;
@@ -559,6 +562,10 @@ int CPU::execute_inst(Instruction inst) {
 
 string CPU::dump_regs() {
     stringstream out;
-    out << "A: " << a;
+    out << " A: " << int(a);
+    out << " X: " << int(x);
+    out << " Y: " << int(y);
+    out << " P: " << int(p);
+    out << " SP: " << int(s);
     return out.str();
 }

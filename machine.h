@@ -15,6 +15,18 @@
 #include "util.h"
 #include "input.h"
 
+/*
+struct machine_state {
+    cpu_state cpu_st;
+    ppu_state ppu_st;
+    apu_state apu_st;
+    byte memory[0x800];
+    int scheduled_nmi, scheduled_irq;
+    bool irq_waiting;
+    sf::Image screen;
+}
+*/
+
 class Machine {
     byte *mem;
     //window
