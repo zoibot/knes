@@ -3,29 +3,27 @@
 #include "ppu.h"
 #include "machine.h"
 
-PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
+PPU::PPU(Machine *mach, wxWindow* wind) {
     this->mach = mach;
     this->wind = wind;
     screen.Create(256, 240);
-    screen.SetSmooth(false);
-	debugi.Create(512, 480);
-	debugi.SetSmooth(false);
+    screen_data = screen.GetData();
     vaddr = 0;
-	taddr = next_taddr = false;
+    taddr = next_taddr = false;
     obj_addr = 0;
     mem = new byte[0x4000];
     obj_mem = new byte[0x100];
     cycle_count = 0;
-	odd_frame = false;
-	last_nmi = 0;
-	vbl_off = 0;
-	nmi_occurred = false;
-	a12high = false;
-	horiz_scroll = vert_scroll = false;
+    odd_frame = false;
+    last_nmi = 0;
+    vbl_off = 0;
+    nmi_occurred = false;
+    a12high = false;
+    horiz_scroll = vert_scroll = false;
     sl = -2;
     cyc = 0;
-	pmask = 0;
-	pctrl = 0;
+    pmask = 0;
+    pctrl = 0;
     pstat = 0;
     last_vblank_end = last_vblank_start = 0;
     memset(mem, 0xff, 0x4000);
@@ -34,28 +32,28 @@ PPU::PPU(Machine *mach, sf::RenderWindow* wind) {
     for(int i = 0; i < 0x4000; i++)
         mirror_table[i] = i;
     set_mirror(0x3000, 0x2000, 0xf00);
-	if(mach->rom->flags6 & 8) {
-		cout << "4 screen!!!!" << endl;
-	}
-	current_mirroring = FOUR_SCREEN;
-	set_mirroring(mach->rom->mirror);
+    if(mach->rom->flags6 & 8) {
+        cout << "4 screen!!!!" << endl;
+    }
+    current_mirroring = FOUR_SCREEN;
+    set_mirroring(mach->rom->mirror);
 }
 
 byte PPU::read_register(byte num) {
     byte ret;
-	int cycles;
+    int cycles;
     switch(num) {
     case 2:
         ret = pstat;
         pstat &= ~(1 << 7);
         latch = false;
-		cycles = mach->cpu->get_cycle_count() * 3;
-		if(cycles - last_nmi < 3) {
-			mach->suppress_nmi();
-			if(cycles - last_nmi == 0) {
-				ret = pstat;
-			}
-		}
+        cycles = mach->cpu->get_cycle_count() * 3;
+        if(cycles - last_nmi < 3) {
+            mach->suppress_nmi();
+            if(cycles - last_nmi == 0) {
+                ret = pstat;
+            }
+        }
         return ret;
     case 4:
         ret = obj_mem[obj_addr];
@@ -327,9 +325,9 @@ void PPU::update_vert_scroll() {
 }
 
 void PPU::new_scanline() {
-	vert_scroll = false;
-	horiz_scroll = false;
-	fine_x = xoff;
+    vert_scroll = false;
+    horiz_scroll = false;
+    fine_x = xoff;
     if(bg_prefetch.size() < 1) {
         cout << "ran out of tiles" << endl;
     } else {
@@ -345,19 +343,19 @@ void PPU::new_scanline() {
         cur_sprs[i] = next_sprs[i];
     }
     num_next_sprs = 0;
-	int cury = sl;
-	if(cury == 240) {
-		num_next_sprs = 0;
-		return;
-	}
+    int cury = sl;
+    if(cury == 240) {
+        num_next_sprs = 0;
+        return;
+    }
     for(int i = 0; i < 64; i++) {
-		Sprite *s = (Sprite*)(obj_mem+ (4*i));
-		if(s->y <= cury && ((cury < (s->y+8)) || ((pctrl & (1<<5)) && (cury < (s->y+16))))) {
+        Sprite *s = (Sprite*)(obj_mem+ (4*i));
+        if(s->y <= cury && ((cury < (s->y+8)) || ((pctrl & (1<<5)) && (cury < (s->y+16))))) {
             if(num_next_sprs == 8) {
                 break;
             }
             next_sprs[num_next_sprs] = *s;
-			next_sprs[num_next_sprs++].index = i; 
+            next_sprs[num_next_sprs++].index = i; 
         }
     }
 }
@@ -414,7 +412,7 @@ void PPU::render_pixels(byte x, byte y, byte num) {
                     shi <<= 1;
                     slo >>= (7-xsoff);
                     slo &= 1;
-					if((cur->index == 0) && (shi|slo) && (hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)) && xoff < 255) {
+                    if((cur->index == 0) && (shi|slo) && (hi|lo) && bg_enabled && !(xoff < 8 && !(pmask & 2)) && xoff < 255) {
                         pstat |= 1<<6; // spr hit 0
                     }
                     if((!(hi|lo) && (shi|slo)) || !(cur->attrs & (1<<5))) {
@@ -427,12 +425,14 @@ void PPU::render_pixels(byte x, byte y, byte num) {
             }
         }
         int color = colors[get_mem(coli)];
-        screen.SetPixel(xoff, y, 
-            sf::Color((color & 0xff0000)>>16, (color & 0x00ff00) >> 8, color & 0x0000ff));
+        unsigned char *pixel = screen_data+3*(xoff + screen.GetWidth() * y);
+        pixel[0] = (color & 0xff0000)>>16;
+        pixel[1] = (color & 0x00ff00)>> 8;
+        pixel[2] = (color & 0x0000ff);
         fine_x++;
         fine_x &= 7;
         xoff++;
-		num--;
+        num--;
         if(!fine_x) {
             if(bg_prefetch.size() < 1) {
             } else {
@@ -445,44 +445,40 @@ void PPU::render_pixels(byte x, byte y, byte num) {
 
 void PPU::draw_frame() {
     sl = -2;
-	num_frames++;
-	sf::Sprite x(screen);
-    wind->Draw(x);
+    num_frames++;
     //process events
-    sf::Event event;
-	bool paused = false;
-	do {
-		while (wind->PollEvent(event)) {
-			if (event.Type == sf::Event::Closed) {
+    /*bool paused = false;
+    do {
+        while (wind->) {
+            if (event.Type == sf::Event::Closed) {
                 mach->save();
-				wind->Close();
-				exit(0);
-			} else if (event.Type == sf::Event::KeyReleased) {
-				if(event.Key.Code == sf::Keyboard::T) {
-					screen.SaveToFile("sshot.jpg");
-				} else if(event.Key.Code == sf::Keyboard::N) {
-					dump_nts();
-				} else if(event.Key.Code == sf::Keyboard::P) {
-					paused = !paused;
-				} else if(event.Key.Code == sf::Keyboard::Y) {
-					for(int i = 0; i < 64; i++) {
-						Sprite *s = ((Sprite*)obj_mem)+i;
-						if(s->y < 16) {
-							cout << (int)s->y << endl;
-						}
-					}
-				} else if(event.Key.Code == sf::Keyboard::Q) {
-					//ZOOOM
-					wind->SetSize(1024, 960);
-				} else if(event.Key.Code == sf::Keyboard::F) {
+                wind->Close();
+                exit(0);
+            } else if (event.Type == sf::Event::KeyReleased) {
+                if(event.Key.Code == sf::Keyboard::T) {
+                    screen.SaveToFile("sshot.jpg");
+                } else if(event.Key.Code == sf::Keyboard::N) {
+                    dump_nts();
+                } else if(event.Key.Code == sf::Keyboard::P) {
+                    paused = !paused;
+                } else if(event.Key.Code == sf::Keyboard::Y) {
+                    for(int i = 0; i < 64; i++) {
+                        Sprite *s = ((Sprite*)obj_mem)+i;
+                        if(s->y < 16) {
+                            cout << (int)s->y << endl;
+                        }
+                    }
+                } else if(event.Key.Code == sf::Keyboard::Q) {
+                    //ZOOOM
+                    wind->SetSize(1024, 960);
+                } else if(event.Key.Code == sf::Keyboard::F) {
                     stringstream fps;
                     fps << "fps: " << 1000.0f/float(wind->GetFrameTime());
                     log(fps.str());
                 }
-			}
-		}
-	} while (paused);
-    wind->Display();
+            }
+        }
+    } while (paused);*/
 }
 
 void PPU::run() {
@@ -493,15 +489,15 @@ void PPU::run() {
         int cycles = mach->cpu->get_cycle_count() * 3 - cycle_count;
         if(sl == -2) {
             do_vblank(rendering_enabled);
-		} else if(sl == -1) {
-			switch(cyc) {
-			case 0:
-				pstat &= ~(1 << 7);
-				pstat &= ~(1 << 6);
-				pstat &= ~(1 << 5);
-				vbl_off = cycle_count;
-				cycle_count += 304;
-				cyc += 304;
+        } else if(sl == -1) {
+            switch(cyc) {
+            case 0:
+                pstat &= ~(1 << 7);
+                pstat &= ~(1 << 6);
+                pstat &= ~(1 << 5);
+                vbl_off = cycle_count;
+                cycle_count += 304;
+                cyc += 304;
                 break;
             case 304:
                 if(bg_enabled) {
@@ -512,24 +508,24 @@ void PPU::run() {
                 if(bg_enabled)
                     get_mem(0x1000); //hack for MMC3
                 break;
-			case 340:
-				if(bg_enabled) {
-					if(odd_frame) cycle_count -= 1;
-				}
-				odd_frame = !odd_frame;
-				cyc++;
-				cycle_count++;
+            case 340:
+                if(bg_enabled) {
+                    if(odd_frame) cycle_count -= 1;
+                }
+                odd_frame = !odd_frame;
+                cyc++;
+                cycle_count++;
                 break;
-			case 341:
+            case 341:
                 if(bg_enabled) {
                     prefetch_bytes(320, 21);
                 }
-				cyc = 0;
-				sl++;
+                cyc = 0;
+                sl++;
                 if(bg_enabled) 
                     new_scanline();
-				break;
-			}
+                break;
+            }
         } else if(sl < 240) {
             int todo = 0;
             if(341 - cyc > cycles) {
@@ -561,14 +557,14 @@ void PPU::run() {
                 cyc = 0;
                 sl += 1;
                 pstat |= (1 << 7);
-				last_nmi = cycle_count;
-		        last_vblank_start = mach->cpu->get_cycle_count();
+                last_nmi = cycle_count;
+                last_vblank_start = mach->cpu->get_cycle_count();
                 if(pctrl & (1 << 7)) {
                     mach->request_nmi();
-					nmi_occurred = true;
+                    nmi_occurred = true;
                 } else {
-					nmi_occurred = false;
-				}
+                    nmi_occurred = false;
+                }
             }
         } else if(sl == 241) {
             if(341 - cyc > cycles) {
@@ -587,105 +583,105 @@ void PPU::run() {
 }
 
 void PPU::set_mirroring(NTMirroring mirror) {
-	if(mirror == current_mirroring) return;
-	switch(mirror) {
-	case VERTICAL:
-		set_mirror(0x2000, 0x2000, 0x400);
-		set_mirror(0x2400, 0x2400, 0x400);
-		set_mirror(0x2800, 0x2000, 0x400);
+    if(mirror == current_mirroring) return;
+    switch(mirror) {
+    case VERTICAL:
+        set_mirror(0x2000, 0x2000, 0x400);
+        set_mirror(0x2400, 0x2400, 0x400);
+        set_mirror(0x2800, 0x2000, 0x400);
         set_mirror(0x2c00, 0x2400, 0x400);
-		break;
-	case HORIZONTAL:
-		set_mirror(0x2000, 0x2000, 0x400);
-		set_mirror(0x2400, 0x2000, 0x400);
-		set_mirror(0x2800, 0x2400, 0x400);
+        break;
+    case HORIZONTAL:
+        set_mirror(0x2000, 0x2000, 0x400);
+        set_mirror(0x2400, 0x2000, 0x400);
+        set_mirror(0x2800, 0x2400, 0x400);
         set_mirror(0x2c00, 0x2400, 0x400);
-		break;
-	case SINGLE_LOWER:
-		set_mirror(0x2000, 0x2000, 0x400);
-		set_mirror(0x2400, 0x2000, 0x400);
-		set_mirror(0x2800, 0x2000, 0x400);
+        break;
+    case SINGLE_LOWER:
+        set_mirror(0x2000, 0x2000, 0x400);
+        set_mirror(0x2400, 0x2000, 0x400);
+        set_mirror(0x2800, 0x2000, 0x400);
         set_mirror(0x2c00, 0x2000, 0x400);
-		break;
-	case SINGLE_UPPER:
-		set_mirror(0x2000, 0x2400, 0x400);
-		set_mirror(0x2400, 0x2400, 0x400);
-		set_mirror(0x2800, 0x2400, 0x400);
+        break;
+    case SINGLE_UPPER:
+        set_mirror(0x2000, 0x2400, 0x400);
+        set_mirror(0x2400, 0x2400, 0x400);
+        set_mirror(0x2800, 0x2400, 0x400);
         set_mirror(0x2c00, 0x2400, 0x400);
-		break;
-	case SINGLE_THIRD:
-		set_mirror(0x2000, 0x2800, 0x400);
-		set_mirror(0x2400, 0x2800, 0x400);
-		set_mirror(0x2800, 0x2800, 0x400);
+        break;
+    case SINGLE_THIRD:
+        set_mirror(0x2000, 0x2800, 0x400);
+        set_mirror(0x2400, 0x2800, 0x400);
+        set_mirror(0x2800, 0x2800, 0x400);
         set_mirror(0x2c00, 0x2800, 0x400);
-		break;
-	case SINGLE_FOURTH:
-		set_mirror(0x2000, 0x2c00, 0x400);
-		set_mirror(0x2400, 0x2c00, 0x400);
-		set_mirror(0x2800, 0x2c00, 0x400);
+        break;
+    case SINGLE_FOURTH:
+        set_mirror(0x2000, 0x2c00, 0x400);
+        set_mirror(0x2400, 0x2c00, 0x400);
+        set_mirror(0x2800, 0x2c00, 0x400);
         set_mirror(0x2c00, 0x2c00, 0x400);
-		break;
-	default:
-		break;
-	}
+        break;
+    default:
+        break;
+    }
 }
 
 void PPU::log(string message, LogLevel level) {
-	stringstream x;
-	x << "sl: " << sl << " cyc: " << cyc << " vaddr: " << HEX4(vaddr) << " " << message;
-	Logger::get_logger("main")->log(x.str(), "ppu", level);
+    stringstream x;
+    x << "sl: " << sl << " cyc: " << cyc << " vaddr: " << HEX4(vaddr) << " " << message;
+    Logger::get_logger("main")->log(x.str(), "ppu", level);
 }
 
 void PPU::dump_nts() {
-	debug.Create(sf::VideoMode(512, 480), "debug");
-	word base_pt_addr;
-	if(pctrl & (1<<4)) {
+    /*debug.Create(sf::VideoMode(512, 480), "debug");
+    word base_pt_addr;
+    if(pctrl & (1<<4)) {
         base_pt_addr = 0x1000;
     } else {
         base_pt_addr = 0x0;
     }
-	int x = 0;
-	int y = 0;
-	for(int nt = 0x2000; nt < 0x3000; nt+=0x400) {
-		word at_base = nt + 0x3c0;
-		for(int ntaddr = nt; ntaddr < nt+0x3c0; ntaddr++) {
-			byte nt_val = get_mem(ntaddr);
-			word pt_addr = (nt_val << 4) + base_pt_addr;
-			byte row = (ntaddr >> 6) & 1;
-			byte col = (ntaddr & 2) >> 1;
-			byte at_val = get_mem(at_base + ((ntaddr & 0x1f)>>2) + ((ntaddr & 0x3e0) >> 7)*8);
-			at_val >>= 4 * row + 2 * col;
-			at_val &= 3;
-			at_val <<= 2;
-			for(int fy = 0; fy < 8; fy++) {
-				for(int fx = 0; fx < 8; fx++) {
-					byte hi = get_mem(pt_addr+8+fy);
-					byte lo = get_mem(pt_addr+fy);
-					hi >>= (7-fx);
-					hi &= 1;
-					hi <<= 1;
-					lo >>= (7-fx);
-					lo &= 1;
-					word coli = 0x3f00;
-					if(hi|lo)
-						coli |= at_val | hi | lo;
-					int color = colors[get_mem(coli)];
-					debugi.SetPixel(x+fx, y+fy, sf::Color((color & 0xff0000)>>16, (color & 0x00ff00) >> 8, color & 0x0000ff));
-				}
-			}
-			x += 8;
-			if(x % 256 == 0) {
-				x -= 256;
-				y += 8;
-			}
-		}
-		x += 256;
-		y -= 240;
-		if(x == 512) {
-			x = 0;
-			y = 240;
-		}
-	}
-	debug.Draw(sf::Sprite(debugi));
-	debug.Display();
+    int x = 0;
+    int y = 0;
+    for(int nt = 0x2000; nt < 0x3000; nt+=0x400) {
+        word at_base = nt + 0x3c0;
+        for(int ntaddr = nt; ntaddr < nt+0x3c0; ntaddr++) {
+            byte nt_val = get_mem(ntaddr);
+            word pt_addr = (nt_val << 4) + base_pt_addr;
+            byte row = (ntaddr >> 6) & 1;
+            byte col = (ntaddr & 2) >> 1;
+            byte at_val = get_mem(at_base + ((ntaddr & 0x1f)>>2) + ((ntaddr & 0x3e0) >> 7)*8);
+            at_val >>= 4 * row + 2 * col;
+            at_val &= 3;
+            at_val <<= 2;
+            for(int fy = 0; fy < 8; fy++) {
+                for(int fx = 0; fx < 8; fx++) {
+                    byte hi = get_mem(pt_addr+8+fy);
+                    byte lo = get_mem(pt_addr+fy);
+                    hi >>= (7-fx);
+                    hi &= 1;
+                    hi <<= 1;
+                    lo >>= (7-fx);
+                    lo &= 1;
+                    word coli = 0x3f00;
+                    if(hi|lo)
+                        coli |= at_val | hi | lo;
+                    int color = colors[get_mem(coli)];
+                    debugi.SetPixel(x+fx, y+fy, sf::Color((color & 0xff0000)>>16, (color & 0x00ff00) >> 8, color & 0x0000ff));
+                }
+            }
+            x += 8;
+            if(x % 256 == 0) {
+                x -= 256;
+                y += 8;
+            }
+        }
+        x += 256;
+        y -= 240;
+        if(x == 512) {
+            x = 0;
+            y = 240;
+        }
+    }
+    debug.Draw(sf::Sprite(debugi));
+    debug.Display(); */
 }

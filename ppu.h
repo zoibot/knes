@@ -3,8 +3,9 @@
 
 #include <list>
 
-#include <SFML/Window.hpp>
-#include <SFML/Graphics.hpp>
+#include <wx/dc.h>
+#include <wx/dcbuffer.h>
+#include <wx/image.h>
 
 #include "util.h"
 #include "log.h"
@@ -16,7 +17,7 @@ struct Sprite {
     byte tile;
     byte attrs;
     byte x;
-	byte index;
+    byte index;
     byte pattern_lo;
     byte pattern_hi;
 };
@@ -32,15 +33,14 @@ struct Tile {
 class PPU {
 private:
     Machine *mach;
-    sf::RenderWindow *wind;
-	sf::RenderWindow debug;
-	sf::Image debugi;
-	//cycles
-	int cycle_count;
-	bool nmi_occurred;
-	bool odd_frame;
-	int last_nmi;
-	int vbl_off;
+    wxWindow *wind;
+    unsigned char *screen_data;
+    //cycles
+    int cycle_count;
+    bool nmi_occurred;
+    bool odd_frame;
+    int last_nmi;
+    int vbl_off;
     //memory
     byte* mem;
     byte mem_buf;
@@ -49,7 +49,7 @@ private:
     byte pmask;
     byte pstat;
     byte pctrl;
-	//prefetch
+    //prefetch
     list<Tile> bg_prefetch;
     Tile buf_tile;
     Tile cur_tile;
@@ -59,7 +59,7 @@ private:
     int num_sprs;
     //position
     byte xoff, fine_x;
-	bool horiz_scroll, vert_scroll;
+    bool horiz_scroll, vert_scroll;
     //helpers
     void do_vblank(bool rendering_enabled);
     void render_pixels(byte x, byte y, byte num);
@@ -69,28 +69,28 @@ private:
     void prefetch_bytes(int start, int cycles);
     byte get_mem_mirrored(word addr);
     void set_mirror(word from, word to, word size);
-	void log(string message, LogLevel level = lINFO);
-	NTMirroring current_mirroring;
+    void log(string message, LogLevel level = lINFO);
+    NTMirroring current_mirroring;
 public:
-	sf::Image screen;
-	int last_vblank_start;
-	int last_vblank_end;
-	int num_frames;
-	word vaddr, taddr;
+    wxImage screen;
+    int last_vblank_start;
+    int last_vblank_end;
+    int num_frames;
+    word vaddr, taddr;
     word next_taddr;
     int sl;
     word cyc;
     byte* obj_mem;
     word obj_addr;
-	bool a12high;
-	void dump_nts();
+    bool a12high;
+    void dump_nts();
     void run();
-	void set_mirroring(NTMirroring mirror);
+    void set_mirroring(NTMirroring mirror);
     void write_register(byte num, byte val);
     byte read_register(byte num);
     byte get_mem(word addr);
     void set_mem(word addr, byte val);
-    PPU(Machine* mach, sf::RenderWindow* wind);
+    PPU(Machine* mach, wxWindow* wind);
 };
 
 #endif //PPU_H

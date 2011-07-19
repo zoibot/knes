@@ -72,7 +72,7 @@ APU::APU(Machine *mach) {
 	frame_interrupt = false;
 	frame_irq = false;
 	status = 0;
-    sound.SetBuffer(buf);
+//    sound.SetBuffer(buf);
 	counter = 0;
 }
 

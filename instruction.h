@@ -11,52 +11,52 @@ using namespace std;
 class Machine;
 
 enum Op { BRK, ORA, ASL, SLO, PHP, ASL_A, NOP, BPL, CLC, JSR, AND, RLA, TSX, 
-			  BIT, ROL, PLP, ROL_A, BMI, SEC, RTI, EOR, SRE, PHA, LSR, PLA,
-			  LSR_A, JMP, BVC, CLI, RTS, ADC, ROR_A, BVS, RRA, SEI, ROR,
-			  STA, SAX, STY, STX, DEY, DEX, TXA, BCC, TYA, TXS, LDY, LDA, 
-			  LDX, LAX, TAY, TAX, BCS, CLV, CPY, CPX, CMP, DEC, DCP, INY,
-			  INX, BNE, CLD, SBC, ISB, INC, BEQ, SED, DOP, AAC, ASR, ARR,
-			  ATX, AXS, TOP, SYA, KIL, XAA, AXA, XAS, SXA, LAR };
+              BIT, ROL, PLP, ROL_A, BMI, SEC, RTI, EOR, SRE, PHA, LSR, PLA,
+              LSR_A, JMP, BVC, CLI, RTS, ADC, ROR_A, BVS, RRA, SEI, ROR,
+              STA, SAX, STY, STX, DEY, DEX, TXA, BCC, TYA, TXS, LDY, LDA, 
+              LDX, LAX, TAY, TAX, BCS, CLV, CPY, CPX, CMP, DEC, DCP, INY,
+              INX, BNE, CLD, SBC, ISB, INC, BEQ, SED, DOP, AAC, ASR, ARR,
+              ATX, AXS, TOP, SYA, KIL, XAA, AXA, XAS, SXA, LAR };
 const char opnames[][4] = { "BRK", "ORA", "ASL", "SLO", "PHP", "ASL", "NOP", "BPL", "CLC", 
-					"JSR", "AND", "RLA", "TSX", "BIT", "ROL", "PLP", "ROL", "BMI",
-					"SEC", "RTI", "EOR", "SRE", "PHA", "LSR", "PLA", "LSR", "JMP",
-					"BVC", "CLI", "RTS", "ADC", "ROR", "BVS", "RRA", "SEI", "ROR",
-					"STA", "SAX", "STY", "STX", "DEY", "DEX", "TXA", "BCC", "TYA",
-					"TXS", "LDY", "LDA", "LDX", "LAX", "TAY", "TAX", "BCS", "CLV",
-					"CPY", "CPX", "CMP", "DEC", "DCP", "INY", "INX", "BNE", "CLD",
-					"SBC", "ISB", "INC", "BEQ", "SED", "DOP", "AAC", "ASR", "ARR",
-					"ATX", "AXS", "TOP", "SYA", "KIL", "XAA", "AXA", "XAS", "SXA", 
-					"LAR" };
+                    "JSR", "AND", "RLA", "TSX", "BIT", "ROL", "PLP", "ROL", "BMI",
+                    "SEC", "RTI", "EOR", "SRE", "PHA", "LSR", "PLA", "LSR", "JMP",
+                    "BVC", "CLI", "RTS", "ADC", "ROR", "BVS", "RRA", "SEI", "ROR",
+                    "STA", "SAX", "STY", "STX", "DEY", "DEX", "TXA", "BCC", "TYA",
+                    "TXS", "LDY", "LDA", "LDX", "LAX", "TAY", "TAX", "BCS", "CLV",
+                    "CPY", "CPX", "CMP", "DEC", "DCP", "INY", "INX", "BNE", "CLD",
+                    "SBC", "ISB", "INC", "BEQ", "SED", "DOP", "AAC", "ASR", "ARR",
+                    "ATX", "AXS", "TOP", "SYA", "KIL", "XAA", "AXA", "XAS", "SXA", 
+                    "LAR" };
 enum AddrMode { IMP, IMM, ZP, ABS, REL, A, IXID, IDIX, ABSI, ABSY, ABSX, ZPX, ZPY, ZP_ST, ABS_ST};
 
 struct Opcode {
-	//byte opcode
-	int cycles;
-	Op op;
-	AddrMode addr_mode;
-	bool illegal;
-	bool invalid;
-	bool store;
+    //byte opcode
+    int cycles;
+    Op op;
+    AddrMode addr_mode;
+    bool illegal;
+    bool invalid;
+    bool store;
     int extra_page_cross;
 
-	Opcode();
-	Opcode(Op op, AddrMode amode, int cycles);
-	Opcode(Op op, AddrMode amode, int cycles, bool illegal);
-	Opcode(Op op, AddrMode amode, int cycles, int extra_page_cross);
+    Opcode();
+    Opcode(Op op, AddrMode amode, int cycles);
+    Opcode(Op op, AddrMode amode, int cycles, bool illegal);
+    Opcode(Op op, AddrMode amode, int cycles, int extra_page_cross);
 };
 
 struct Instruction {
-	Instruction();
+    Instruction();
     Machine *mach;
-	friend ostream& operator <<(ostream &out, Instruction &inst);
+    friend ostream& operator <<(ostream &out, Instruction &inst);
 
     byte opcode;
-	Opcode op;
-	int extra_cycles;
+    Opcode op;
+    int extra_cycles;
     byte operand;
-	word addr, i_addr;
-	byte args[2];
-	byte arglen;
+    word addr, i_addr;
+    byte args[2];
+    byte arglen;
 };
 
 static const Opcode ops[256] = 

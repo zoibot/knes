@@ -4,50 +4,51 @@
 #include <map>
 using namespace std;
 
-#include <SFML/Window.hpp>
+#include <wx/utils.h>
+#include <wx/defs.h>
 
 class Machine;
 
 enum buttons {
-	bA,
-	bB,
-	bS,
-	bT,
-	bU,
-	bD,
-	bL,
-	bR
+    bA,
+    bB,
+    bS,
+    bT,
+    bU,
+    bD,
+    bL,
+    bR
 };
 
 class InputProvider {
 public:
-	virtual bool pressed(int button, int controller) = 0;
+    virtual bool pressed(int button, int controller) = 0;
 };
 
-const sf::Keyboard::Key keymap[8] = {
-	sf::Keyboard::Z, //a
-    sf::Keyboard::X, //b
-    sf::Keyboard::S, //Select
-    sf::Keyboard::Return, //Start
-    sf::Keyboard::Up,
-    sf::Keyboard::Down,
-	sf::Keyboard::Left,
-    sf::Keyboard::Right
+const wxKeyCode keymap[8] = {
+    (wxKeyCode)'z', //a
+    (wxKeyCode)'x', //b
+    (wxKeyCode)'s', //Select
+    WXK_RETURN, //Start
+    WXK_UP,
+    WXK_DOWN,
+    WXK_LEFT,
+    WXK_RIGHT
 };
 
 
-class SFMLInputProvider : public InputProvider {
+class WxInputProvider : public InputProvider {
 public:
-	SFMLInputProvider();
-	bool pressed(int button, int controller);
+    WxInputProvider();
+    bool pressed(int button, int controller);
 };
 
 class TestInputProvider : public InputProvider {
-	bool buttons[16];
+    bool buttons[16];
 public:
-	TestInputProvider();
-	bool pressed(int button, int controller);
-	void set_button(int button, int controller, bool state);
+    TestInputProvider();
+    bool pressed(int button, int controller);
+    void set_button(int button, int controller, bool state);
 };
 
 #endif //INPUT_H

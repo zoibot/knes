@@ -3,8 +3,6 @@
 
 #include <iostream>
 
-#include <SFML/Audio.hpp>
-
 #include "util.h"
 
 using namespace std;
@@ -17,11 +15,11 @@ class Pulse {
     byte envelope;
     word timer;
     bool length_enabled;
-	byte length_counter;
+    byte length_counter;
 public:
     void enable_length(bool en);
-	void clock_length_counter();
-	bool length_nonzero();
+    void clock_length_counter();
+    bool length_nonzero();
     void write_register(byte num, byte val);
     byte read_register(byte num);
 };
@@ -48,26 +46,24 @@ public:
 };
 
 class APU {
-	//implementation
-    sf::SoundBuffer buf;
-    sf::Sound sound;
-	Machine *mach;
-	//registers
-	byte status;
-	//channels
+    //implementation
+    Machine *mach;
+    //registers
+    byte status;
+    //channels
     Pulse p1, p2;
     Triangle tr;
     Noise ns;
     DMC dmc;
-	//frame counter
+    //frame counter
     bool frame_mode;
-	bool odd_clock;
+    bool odd_clock;
     bool frame_irq;
-	bool frame_interrupt;
-	int frame_cycles;
-	byte sequencer_status;
-	void clock_sequencer();
-	int counter;
+    bool frame_interrupt;
+    int frame_cycles;
+    byte sequencer_status;
+    void clock_sequencer();
+    int counter;
 public:
     APU(Machine *mach);
     void write_register(byte num, byte val);

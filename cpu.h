@@ -17,22 +17,22 @@ static const byte C = 1 << 0;
 class CPU {
 private:
     //machine that this CPU is a part of
-	Machine *m;
+    Machine *m;
     //registers
-	int pc;
+    int pc;
     byte a, s, p;
-	byte x, y;
+    byte x, y;
     //cycle timing information
-	int cycle_count, prev_cycles;
+    int cycle_count, prev_cycles;
 
     //instruction helper functions
-	void branch(bool cond, Instruction &inst);
-	void compare(byte a, byte b);
+    void branch(bool cond, Instruction &inst);
+    void compare(byte a, byte b);
 
     //memory accessing functions
-	byte get_mem(word addr);
-	void set_mem(word addr, byte value);
-	byte next_byte();
+    byte get_mem(word addr);
+    void set_mem(word addr, byte value);
+    byte next_byte();
     word next_word();
 
     //stack helpers
@@ -43,26 +43,26 @@ private:
 
     //flag helpers
     void set_nz(byte val);
-	void set_flag(byte flag, bool val);
+    void set_flag(byte flag, bool val);
 
-	void log(string message, LogLevel level = lINFO);
+    void log(string message, LogLevel level = lINFO);
 public:
-	CPU(Machine *m);
+    CPU(Machine *m);
     //accessors
     bool get_flag(byte flag);
     int get_cycle_count();
     void add_cycles(int c);
     word get_pc();
     void set_pc(word addr);
-	
+    
     //interrupts
-	void reset();
-	void irq();
-	void nmi();
+    void reset();
+    void irq();
+    void nmi();
 
     //running
-	Instruction next_instruction();
-	int execute_inst(Instruction inst);
+    Instruction next_instruction();
+    int execute_inst(Instruction inst);
 
     //debugging
     string dump_regs();

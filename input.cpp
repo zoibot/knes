@@ -4,12 +4,12 @@
 
 #include "input.h"
 
-SFMLInputProvider::SFMLInputProvider() {
+WxInputProvider::WxInputProvider() {
 
 }
 
-bool SFMLInputProvider::pressed(int button, int controller) {
-	return sf::Keyboard::IsKeyPressed(keymap[button]);
+bool WxInputProvider::pressed(int button, int controller) {
+	return wxGetKeyState(keymap[button]);
 }
 
 TestInputProvider::TestInputProvider() {
