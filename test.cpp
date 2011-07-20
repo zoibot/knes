@@ -62,7 +62,7 @@ void test(char *testfile) {
             m->run(length);
         } else if(command == "screen") {
             wxImage i = m->screenshot();
-            i.SaveFile("screen.png");
+            i.SaveFile(_("screen.png"));
         } else if(command == "test_image") {
             wxImage i = m->screenshot();
             boost::crc_optimal<64, 0xFADEEAB39483FCD0> crc;
@@ -76,10 +76,9 @@ void test(char *testfile) {
                 pass();
             } else {
                 fail();
-                stringstream checksum;
-                checksum << hex << crc.checksum();
-                i.SaveFile(checksum.str() + ".png", wxBITMAP_TYPE_PNG);
-                cout << "expected " << hex << expected << " got " << checksum.str() << endl;
+                wxString checksum = wxString::Format(_("%x"), crc.checksum());
+                i.SaveFile(checksum + _(".png"), wxBITMAP_TYPE_PNG);
+                cout << "expected " << hex << expected << " got " << checksum << endl;
             }
         } else if(command == "press") {
             char button;
