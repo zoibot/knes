@@ -12,6 +12,7 @@ public:
 
 class MainWindow : public wxFrame {
     Machine *mach;
+	wxStopWatch frame_timer;
     bool running;
 public:
 

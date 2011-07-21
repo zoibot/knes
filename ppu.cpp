@@ -425,7 +425,7 @@ void PPU::render_pixels(byte x, byte y, byte num) {
             }
         }
         int color = colors[get_mem(coli)];
-        unsigned char *pixel = screen_data+3*(xoff + screen.GetWidth() * y);
+        unsigned char *pixel = screen_data+3*(xoff + 256 * y);
         pixel[0] = (color & 0xff0000)>>16;
         pixel[1] = (color & 0x00ff00)>> 8;
         pixel[2] = (color & 0x0000ff);

@@ -2,6 +2,7 @@
 #include <wx/event.h>
 #include <wx/menu.h>
 
+
 #include "gui.h"
 
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
@@ -41,8 +42,6 @@ MainWindow::MainWindow(const wxString& title, const wxSize& size, long flags)
     wxMenu *menuDebug = new wxMenu();
     menuDebug->Append(ID_MemoryView, _("&MemoryView"));
     menuBar->Append(menuDebug, _("&Debug"));
-
-
 
     SetMenuBar( menuBar );
 
@@ -86,11 +85,19 @@ void MainWindow::OnMemoryView(wxCommandEvent& event) {
 }
 
 void MainWindow::OnIdle(wxIdleEvent& event) {
+    double frame_rate = 1000.0f/double(frame_timer.Time());
+    frame_timer.Start();
     wxClientDC dc(this);
     if(running && mach) {
         mach->run(1);
+        //draw screen
         dc.DrawBitmap(mach->screenshot(), 0, 0);
+        //display framerate
+        wxString framerate;
+        framerate << frame_rate;
+        dc.SetTextBackground(wxTheColourDatabase->Find("black"));
+        dc.SetTextForeground(wxTheColourDatabase->Find("green"));
+        dc.DrawText(framerate, 0, 0);
     }
-    //read
     event.RequestMore();
 }
